@@ -1,0 +1,1 @@
+A wrapper around requests that makes interacting with the HTML nationstates.net site legally and efficiently far easier.
