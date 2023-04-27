@@ -1,9 +1,9 @@
 <!-- markdownlint-disable -->
 
 # TODO:
-Region Admin Controls
-Dossier and reports handling
-More fleshed out API Client
+- Region Admin Controls
+- Dossier and reports handling
+- More fleshed out API Client
 
 <a href="..\src\session.py#L0"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
