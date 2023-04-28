@@ -145,7 +145,7 @@ class NSSession:
                     "Pretitle should only contain alphanumeric characters."
                 )
 
-    def _html_request(self, url, data, files, allow_redirects):
+    def _html_request(self, url, data, files, allow_redirects, auth=None) -> requests.Response:
         # there's no reason to be adding chk and localid if we're logging in
         if f"region={self._AUTH_REGION}" not in url:
             data |= {"chk": self.chk, "localid": self.localid}
@@ -156,6 +156,7 @@ class NSSession:
             data=data,
             files=files,
             allow_redirects=allow_redirects,
+            auth=auth
         )
         self._get_auth_values(response)
         return response
@@ -172,7 +173,7 @@ class NSSession:
         Returns:
             bool: True if the authentication was successful, False otherwise"""
         url = "https://www.nationstates2.net/template-overall=none/"
-        response = self._session.get(url, auth=(user, password))
+        response = self._html_request(url, auth=(user, password))
         if response.status_code == 200:
             self._ns_server = "2"
             self._AUTH_REGION = "the_black_hawks"

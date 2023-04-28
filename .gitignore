@@ -161,3 +161,4 @@ cython_debug/
 
 .ruff_cache/
 config.*
+ns2.py
