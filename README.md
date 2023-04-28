@@ -15,7 +15,7 @@
 
 ---
 
-<a href="..\src\session.py#L18"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="..\src\session.py#L25"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `canonicalize`
 
@@ -41,11 +41,20 @@ Converts a string to its canonical form used by the nationstates api.
 ---
 
 ## <kbd>class</kbd> `NSSession`
+A wrapper around requests that abstracts away interacting with the HTML nationstates.net site. Focused on legality, correctness, and ease of use. 
 
 
 
+**Args:**
+ 
+ - <b>`script_name`</b> (str):  Name of your script 
+ - <b>`script_version`</b> (str):  Version number of your script 
+ - <b>`script_author`</b> (str):  Author of your script 
+ - <b>`script_user`</b> (str):  Nation name of the user running your script 
+ - <b>`keybind`</b> (str, optional):  Keybind to count as a user click. Defaults to "space". 
+ - <b>`link_to_src`</b> (str, optional):  Link to the source code of your script. 
 
-<a href="..\src\session.py#L31"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="..\src\session.py#L51"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>function</kbd> `__init__`
 
@@ -60,25 +69,41 @@ __init__(
 )
 ```
 
-A wrapper around requests that abstracts away interacting with the HTML nationstates.net site. Focused on legality, correctness, and ease of use. 
 
 
 
-**Args:**
- 
- - <b>`script_name`</b> (str):  Name of your script 
- - <b>`script_version`</b> (str):  Version number of your script 
- - <b>`script_author`</b> (str):  Author of your script 
- - <b>`script_user`</b> (str):  Nation name of the user running your script 
- - <b>`keybind`</b> (str, defaults to space):  Keybind to fulfill one click = one request rule 
- - <b>`link_to_src`</b> (str, optional):  Link to the source code of your script. 
 
 
 
 
 ---
 
-<a href="..\src\session.py#L144"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="..\src\session.py#L165"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+### <kbd>function</kbd> `NS2_authenticate`
+
+```python
+NS2_authenticate(user: str, password: str)
+```
+
+Authenticates the user to nationstates2.net with the given credentials. 
+
+
+
+**Args:**
+ 
+ - <b>`user`</b> (str):  The username supplied 
+ - <b>`password`</b> (str):  The password supplied 
+
+
+
+**Returns:**
+ 
+ - <b>`bool`</b>:  True if the authentication was successful, False otherwise 
+
+---
+
+<a href="..\src\session.py#L213"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>function</kbd> `api_request`
 
@@ -102,7 +127,7 @@ Sends a request to the nationstates api with the given data.
 
 ---
 
-<a href="..\src\session.py#L372"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="..\src\session.py#L447"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>function</kbd> `apply_wa`
 
@@ -126,7 +151,7 @@ Applies to the WA.
 
 ---
 
-<a href="..\src\session.py#L201"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="..\src\session.py#L273"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>function</kbd> `change_nation_flag`
 
@@ -150,7 +175,7 @@ Changes the nation flag to the given image.
 
 ---
 
-<a href="..\src\session.py#L229"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="..\src\session.py#L314"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>function</kbd> `change_nation_settings`
 
@@ -192,7 +217,7 @@ Given a logged in session, changes customizable fields and settings of the logge
 
 ---
 
-<a href="..\src\session.py#L419"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="..\src\session.py#L495"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>function</kbd> `clear_dossier`
 
@@ -210,7 +235,43 @@ Clears a logged in nation's dossier.
 
 ---
 
-<a href="..\src\session.py#L395"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="..\src\session.py#L534"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+### <kbd>function</kbd> `create_nation`
+
+```python
+create_nation(
+    nation_name: str,
+    password: str,
+    email: str,
+    currency: str,
+    animal: str,
+    motto: str
+) → bool
+```
+
+Creates a new nation. 
+
+
+
+**Args:**
+ 
+ - <b>`nation_name`</b> (str):  Name of the nation to create 
+ - <b>`password`</b> (str):  Password to the nation 
+ - <b>`email`</b> (str):  Email to use for WA apps on the nation 
+ - <b>`currency`</b> (str):  Currency of the nation 
+ - <b>`animal`</b> (str):  National animal of the nation 
+ - <b>`motto`</b> (str):  National motto/slogan of the nation 
+
+
+
+**Returns:**
+ 
+ - <b>`bool`</b>:  Whether the nation was successfully created or not 
+
+---
+
+<a href="..\src\session.py#L471"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>function</kbd> `endorse`
 
@@ -235,7 +296,7 @@ Endorses the given nation.
 
 ---
 
-<a href="..\src\session.py#L331"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="..\src\session.py#L409"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>function</kbd> `join_wa`
 
@@ -260,7 +321,7 @@ Joins the WA with the given nation.
 
 ---
 
-<a href="..\src\session.py#L170"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="..\src\session.py#L241"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>function</kbd> `login`
 
@@ -285,7 +346,7 @@ Logs in to the nationstates site.
 
 ---
 
-<a href="..\src\session.py#L283"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="..\src\session.py#L368"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>function</kbd> `move_to_region`
 
@@ -310,7 +371,7 @@ Moves the nation to the given region.
 
 ---
 
-<a href="..\src\session.py#L114"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="..\src\session.py#L182"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>function</kbd> `request`
 
@@ -341,7 +402,7 @@ Sends a request to the given url with the given data and files.
 
 ---
 
-<a href="..\src\session.py#L355"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="..\src\session.py#L433"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>function</kbd> `resign_wa`
 
@@ -359,7 +420,7 @@ Resigns from the WA.
 
 ---
 
-<a href="..\src\session.py#L309"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="..\src\session.py#L391"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>function</kbd> `vote`
 
@@ -384,7 +445,7 @@ Votes on a poll.
 
 ---
 
-<a href="..\src\session.py#L435"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="..\src\session.py#L509"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>function</kbd> `wa_vote`
 
