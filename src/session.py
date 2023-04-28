@@ -145,10 +145,12 @@ class NSSession:
                     "Pretitle should only contain alphanumeric characters."
                 )
 
-    def _html_request(self, url, data, files, allow_redirects, auth=None) -> requests.Response:
+    def _html_request(self, url, data={}, files=None, allow_redirects=False, auth=None) -> requests.Response:
         # there's no reason to be adding chk and localid if we're logging in
         if f"region={self._AUTH_REGION}" not in url:
             data |= {"chk": self.chk, "localid": self.localid}
+        if self._ns_server != "1":
+            auth = (self._auth_user, self._auth_password)
         userclick = self._wait_for_input(self.keybind)
         # userclick is the number of milliseconds since the epoch, admin uses this for help enforcing the simultaneity rule
         response = self._session.post(
@@ -173,6 +175,8 @@ class NSSession:
         Returns:
             bool: True if the authentication was successful, False otherwise"""
         url = "https://www.nationstates2.net/template-overall=none/"
+        self._auth_user = user
+        self._auth_password = password
         response = self._html_request(url, auth=(user, password))
         if response.status_code == 200:
             self._ns_server = "2"
@@ -296,7 +300,7 @@ class NSSession:
         }
 
         response = self.request(url, data=data, files=files)
-
+        print(response.text)
         if (
             response.headers.get("location")
             == "https://www.nationstates.net/page=settings"
@@ -569,7 +573,6 @@ class NSSession:
         self._validate_fields(data)
 
         response = self.request(url, data)
-        print(response.text)
 
         if "?founded=new" not in response.headers["location"]:
             return False
