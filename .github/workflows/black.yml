@@ -1,33 +1,10 @@
-name: Format source code
+name: Lint
 
-on:
-  push:
-    branches: [ master ]
+on: [push, pull_request]
 
 jobs:
-  run:
-    name: Format with Black
+  lint:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
-
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-
-      - name: Install dependencies
-        run: python -m pip install -r requirements-dev.txt
-
-      - name: Update source code
-        run: black *.py
-
-      - name: Commit changes
-        uses: EndBug/add-and-commit@v9
-        with:
-          author_name: ${{ github.actor }}
-          author_email: ${{ github.actor }}@users.noreply.github.com
-          message: 'Automatically format code with black'
-          add: '.'
-          branch: ${{ github.ref }}
+      - uses: actions/checkout@v3
+      - uses: psf/black@stable

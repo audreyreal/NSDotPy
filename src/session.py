@@ -145,10 +145,10 @@ class NSSession:
                     "Pretitle should only contain alphanumeric characters."
                 )
 
-    def _html_request(self, url, data={}, files=None, allow_redirects=False, auth=None) -> requests.Response:
+    def _html_request(
+        self, url, data={}, files=None, allow_redirects=False, auth=None
+    ) -> requests.Response:
         # there's no reason to be adding chk and localid if we're logging in
-        if self._ns_server != "1":
-            auth = (self._auth_user, self._auth_password)
         userclick = self._wait_for_input(self.keybind)
         # userclick is the number of milliseconds since the epoch, admin uses this for help enforcing the simultaneity rule
         response = self._session.post(
@@ -156,7 +156,7 @@ class NSSession:
             data=data,
             files=files,
             allow_redirects=allow_redirects,
-            auth=auth
+            auth=auth,
         )
         self._get_auth_values(response)
         return response
@@ -195,7 +195,7 @@ class NSSession:
         Returns:
             requests.Response: The response from the server
         """
-        auth=None
+        auth = None
         if self._ns_server != "1":
             url = url.replace("nationstates.net", f"nationstates{self._ns_server}.net")
             auth = (self._auth_user, self._auth_password)
@@ -216,7 +216,7 @@ class NSSession:
             # if its not nationstates then just pass the request through
             return self._session.post(url, data=data, allow_redirects=allow_redirects)
 
-    def api_request(self, data: dict, _auth = None) -> requests.Response:
+    def api_request(self, data: dict, _auth=None) -> requests.Response:
         """Sends a request to the nationstates api with the given data.
 
         Args:
@@ -228,11 +228,13 @@ class NSSession:
         # TODO: probably move this responsibility to a third party api library to avoid reinventing the wheel
         # if one exists of sufficient quality thats AGPLv3 compatible
         data |= {"v": "12"}
-        url = f"https://www.nationstates{self._ns_server}.net/cgi-bin/api.cgi" if _auth else "https://www.nationstates.net/cgi-bin/api.cgi"
-        # rate limiting section
-        response = self._session.post(
-            url, data=data, auth=_auth
+        url = (
+            f"https://www.nationstates{self._ns_server}.net/cgi-bin/api.cgi"
+            if _auth
+            else "https://www.nationstates.net/cgi-bin/api.cgi"
         )
+        # rate limiting section
+        response = self._session.post(url, data=data, auth=_auth)
         # if the server tells us to wait, wait
         head = response.headers
         if waiting_time := head.get("Retry-After"):
