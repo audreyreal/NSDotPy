@@ -57,7 +57,7 @@ class NSSession:
         keybind: str = "space",
         link_to_src: str = "",
     ):
-        self.VERSION = "1.0.1"
+        self.VERSION = "1.0.2"
         # Attach the tendo singleton to the session object so it can
         # only be run once at a time, avoiding simultaneity issues
         self._me = SingleInstance()
@@ -147,8 +147,6 @@ class NSSession:
 
     def _html_request(self, url, data={}, files=None, allow_redirects=False, auth=None) -> requests.Response:
         # there's no reason to be adding chk and localid if we're logging in
-        if f"region={self._AUTH_REGION}" not in url:
-            data |= {"chk": self.chk, "localid": self.localid}
         if self._ns_server != "1":
             auth = (self._auth_user, self._auth_password)
         userclick = self._wait_for_input(self.keybind)
@@ -197,8 +195,10 @@ class NSSession:
         Returns:
             requests.Response: The response from the server
         """
-        if self._ns_server == "2":
-            url = url.replace("nationstates.net", "nationstates2.net")
+        auth=None
+        if self._ns_server != "1":
+            url = url.replace("nationstates.net", f"nationstates{self._ns_server}.net")
+            auth = (self._auth_user, self._auth_password)
         if any(
             banned_page in canonicalize(url)
             for banned_page in ["page=telegrams", "page=dilemmas"]
@@ -208,14 +208,15 @@ class NSSession:
             )
         if "api.cgi" in canonicalize(url):
             # deal with ratelimiting if its an api request
-            return self.api_request(data)
-        elif "nationstates" not in canonicalize(url):
+            return self.api_request(data, _auth=auth)
+        elif "nationstates" in canonicalize(url):
+            # do all the things that need to be done for html requests
+            return self._html_request(url, data, files, allow_redirects, auth=auth)
+        else:
             # if its not nationstates then just pass the request through
             return self._session.post(url, data=data, allow_redirects=allow_redirects)
-        else:
-            return self._html_request(url, data, files, allow_redirects)
 
-    def api_request(self, data: dict) -> requests.Response:
+    def api_request(self, data: dict, _auth = None) -> requests.Response:
         """Sends a request to the nationstates api with the given data.
 
         Args:
@@ -227,9 +228,10 @@ class NSSession:
         # TODO: probably move this responsibility to a third party api library to avoid reinventing the wheel
         # if one exists of sufficient quality thats AGPLv3 compatible
         data |= {"v": "12"}
+        url = f"https://www.nationstates{self._ns_server}.net/cgi-bin/api.cgi" if _auth else "https://www.nationstates.net/cgi-bin/api.cgi"
         # rate limiting section
         response = self._session.post(
-            "https://www.nationstates.net/cgi-bin/api.cgi", data=data
+            url, data=data, auth=_auth
         )
         # if the server tells us to wait, wait
         head = response.headers
@@ -300,11 +302,8 @@ class NSSession:
         }
 
         response = self.request(url, data=data, files=files)
-        print(response.text)
-        if (
-            response.headers.get("location")
-            == "https://www.nationstates.net/page=settings"
-        ):
+
+        if "page=settings" in response.headers["location"]:
             self._refresh_auth_values()
             return True
         elif "Just a moment..." in response.text:
@@ -421,16 +420,14 @@ class NSSession:
         print(f"Joining WA with {nation}")
         url = "https://www.nationstates.net/cgi-bin/join_un.cgi"
 
-        data = {"nation": canonicalize(nation), "appid": app_id}
+        data = {"nation": canonicalize(nation), "appid": app_id.strip()}
         response = self.request(url, data)
 
-        if (
-            status := response.headers.get("location")
-            == "https://www.nationstates.net/page=un?welcome=1"
-        ):
+        if "?welcome=1" in response.headers["location"]:
             # since we're just getting thrown into a cgi script, we'll have to manually grab authentication values
             self._refresh_auth_values()
-        return status
+            return True
+        return False
 
     def resign_wa(self):
         """Resigns from the WA.
@@ -489,10 +486,7 @@ class NSSession:
         }
         response = self.request(url, data)
 
-        return (
-            response.headers.get("location")
-            == f"https://www.nationstates.net/nation={canonicalize(nation)}"
-        )
+        return f"nation={canonicalize(nation)}" in response.headers["location"]
 
     def clear_dossier(self) -> bool:
         """Clears a logged in nation's dossier.
