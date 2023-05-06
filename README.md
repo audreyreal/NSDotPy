@@ -15,3 +15,5 @@ if session.login("User Nation", "Password"):  # logs in and checks if login was 
 - ~~Region Admin Controls~~
 - Dossier and reports handling
 - More fleshed out API Client
+## Docs
+https://sw33ze.github.io/NSDotPy/src/session.html#NSSession
