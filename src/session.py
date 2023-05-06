@@ -59,7 +59,7 @@ class NSSession:
             link_to_src (str, optional): Link to the source code of your script.
             logger (logging.Logger | None, optional): Logger to use. Will create its own with name "NSDotPy" if none is specified. Defaults to None.
         """
-        self.VERSION = "1.0.3"
+        self.VERSION = "1.1.0"
         # Initialize logger
         if not logger:
             self._init_logger()
@@ -72,7 +72,9 @@ class NSSession:
         self._session = requests.Session()
         # Set the user agent to the script name, version, author, and user as recommended in the script rules thread:
         # https://forum.nationstates.net/viewtopic.php?p=16394966&sid=be37623536dbc8cee42d8d043945b887#p16394966
-        self._set_user_agent(script_name, script_version, script_author, script_user, link_to_src)
+        self._set_user_agent(
+            script_name, script_version, script_author, script_user, link_to_src
+        )
         # If a link to the source code is provided, add it to the user agent
         # Initialize nationstates specific stuff
         self._ns_server = "1"
@@ -85,7 +87,9 @@ class NSSession:
         self.keybind = keybind
         self.logger.info(f"Initialized. Keybind to continue is {self.keybind}.")
 
-    def _set_user_agent(self, script_name, script_version, script_author, script_user, link_to_src):
+    def _set_user_agent(
+        self, script_name, script_version, script_author, script_user, link_to_src
+    ):
         self.user_agent = (
             f"{script_name}/{script_version} (by:{script_author}; usedBy:{script_user})"
         )
