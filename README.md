@@ -6,7 +6,7 @@ A Python wrapper around requests for legally interacting with the HTML NationSta
 
 ## Simple Example
 ```python
-from nsdotpy import NSClient
+from nsdotpy.session import NSClient
 session = NSClient("NSDotPy Example," "1.0.0", "User Nation", "Dev Nation")
 if session.login("User Nation", "Password"):  # logs in and checks if login was successful
     session.move_to_region("Lily")  # only moves if you successfully logged in

@@ -22,7 +22,7 @@
 import os  # swarm config file
 import json  # for checking if config file exists
 import rtoml  # for config file
-from src.session import NSSession  # for interacting with nationstates
+from nsdotpy.session import NSSession  # for interacting with nationstates
 
 
 def handle_config_files() -> dict[str, str | dict[str, str]]:
