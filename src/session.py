@@ -15,7 +15,8 @@
 # along with NSDotPy. If not, see <https://www.gnu.org/licenses/>.
 
 import time  # for ratelimiting and userclick
-
+import logging  # for logging
+# end standard library imports
 import keyboard  # for the required user input
 import requests  # for http stuff
 from tendo.singleton import SingleInstance  # so it can only be run once at a time
@@ -35,19 +36,6 @@ def canonicalize(string: str) -> str:
 
 
 class NSSession:
-    """A wrapper around requests that abstracts away
-    interacting with the HTML nationstates.net site.
-    Focused on legality, correctness, and ease of use.
-
-    Args:
-        script_name (str): Name of your script
-        script_version (str): Version number of your script
-        script_author (str): Author of your script
-        script_user (str): Nation name of the user running your script
-        keybind (str, optional): Keybind to count as a user click. Defaults to "space".
-        link_to_src (str, optional): Link to the source code of your script.
-    """
-
     def __init__(
         self,
         script_name: str,
@@ -56,8 +44,27 @@ class NSSession:
         script_user: str,
         keybind: str = "space",
         link_to_src: str = "",
+        logger: logging.Logger | None = None,
     ):
-        self.VERSION = "1.0.2"
+        """A wrapper around requests that abstracts away
+        interacting with the HTML nationstates.net site.
+        Focused on legality, correctness, and ease of use.
+
+        Args:
+            script_name (str): Name of your script
+            script_version (str): Version number of your script
+            script_author (str): Author of your script
+            script_user (str): Nation name of the user running your script
+            keybind (str, optional): Keybind to count as a user click. Defaults to "space".
+            link_to_src (str, optional): Link to the source code of your script.
+            logger (logging.Logger | None, optional): Logger to use. Will create its own with name "NSDotPy" if none is specified. Defaults to None.
+        """
+        self.VERSION = "1.0.3"
+        # Initialize logger
+        if not logger:
+            self._init_logger()
+        else:
+            self.logger = logger
         # Attach the tendo singleton to the session object so it can
         # only be run once at a time, avoiding simultaneity issues
         self._me = SingleInstance()
@@ -65,13 +72,7 @@ class NSSession:
         self._session = requests.Session()
         # Set the user agent to the script name, version, author, and user as recommended in the script rules thread:
         # https://forum.nationstates.net/viewtopic.php?p=16394966&sid=be37623536dbc8cee42d8d043945b887#p16394966
-        self.user_agent = (
-            f"{script_name}/{script_version} (by:{script_author}; usedBy:{script_user})"
-        )
-        if link_to_src:
-            self.user_agent = f"{self.user_agent}; src:{link_to_src}"
-        self.user_agent = f"{self.user_agent}; Written with NSDotPy/{self.VERSION} (by:Sweeze; src:github.com/sw33ze/NSDotPy)"
-        self._session.headers.update({"User-Agent": self.user_agent})
+        self._set_user_agent(script_name, script_version, script_author, script_user, link_to_src)
         # If a link to the source code is provided, add it to the user agent
         # Initialize nationstates specific stuff
         self._ns_server = "1"
@@ -82,7 +83,24 @@ class NSSession:
         self.current_nation: str = ""
         self.current_region: str = ""
         self.keybind = keybind
-        print(f"Initialized. Keybind to continue is {self.keybind}.")
+        self.logger.info(f"Initialized. Keybind to continue is {self.keybind}.")
+
+    def _set_user_agent(self, script_name, script_version, script_author, script_user, link_to_src):
+        self.user_agent = (
+            f"{script_name}/{script_version} (by:{script_author}; usedBy:{script_user})"
+        )
+        if link_to_src:
+            self.user_agent = f"{self.user_agent}; src:{link_to_src}"
+        self.user_agent = f"{self.user_agent}; Written with NSDotPy/{self.VERSION} (by:Sweeze; src:github.com/sw33ze/NSDotPy)"
+        self._session.headers.update({"User-Agent": self.user_agent})
+
+    def _init_logger(self):
+        self.logger = logging.getLogger("NSDotPy")
+        logging.basicConfig(
+            level=logging.INFO,
+            format="%(asctime)s %(levelname)s %(message)s",
+            datefmt="%m/%d/%Y %I:%M:%S %p",
+        )
 
     def _get_auth_values(self, response: requests.Response):
         soup = BeautifulSoup(response.text, "html.parser")
@@ -115,7 +133,8 @@ class NSSession:
         Returns:
             int: Userclick parameter, milliseconds since the epoch"""
         keyboard.wait(key)
-        # trigger_on_release is broken because of a bug in keyboard so we have to do this
+        # the trigger_on_release parameter is broken on windows
+        # because of a bug in keyboard so we have to do this
         while keyboard.is_pressed(key):
             pass
         return int(time.time() * 1000)
@@ -142,7 +161,7 @@ class NSSession:
             # check if pretitle contains any non-alphanumeric characters (except spaces)
             if key == "pretitle" and not value.replace(" ", "").isalnum():
                 raise ValueError(
-                    "Pretitle should only contain alphanumeric characters."
+                    "Pretitle should only contain alphanumeric characters or space."
                 )
 
     def _html_request(
@@ -158,6 +177,12 @@ class NSSession:
             allow_redirects=allow_redirects,
             auth=auth,
         )
+        if response.status_code >= 400:
+            with open("error.html", "w") as f:
+                f.write(response.text)
+            raise requests.HTTPError(
+                f"Received status code {response.status_code} from {response.url}. Error page saved to error.html."
+            )
         self._get_auth_values(response)
         return response
 
@@ -204,7 +229,7 @@ class NSSession:
             for banned_page in ["page=telegrams", "page=dilemmas"]
         ):
             raise ValueError(
-                "You cannot use a tool to interact with telegrams or dilemmas. Read up on the script rules: https://forum.nationstates.net/viewtopic.php?p=16394966#p16394966"
+                "You cannot use a tool to interact with telegrams or issues. Read up on the script rules: https://forum.nationstates.net/viewtopic.php?p=16394966#p16394966"
             )
         if "api.cgi" in canonicalize(url):
             # deal with ratelimiting if its an api request
@@ -238,7 +263,7 @@ class NSSession:
         # if the server tells us to wait, wait
         head = response.headers
         if waiting_time := head.get("Retry-After"):
-            print(f"Rate limited. Waiting {waiting_time} seconds.")
+            self.logger.warning(f"Rate limited. Waiting {waiting_time} seconds.")
             time.sleep(int(waiting_time))
         # slow down requests so we dont hit the rate limit in the first place
         requests_left = int(head["X-RateLimit-Remaining"])
@@ -257,7 +282,7 @@ class NSSession:
         Returns:
             bool: True if login was successful, False otherwise
         """
-        print(f"Logging in to {nation}")
+        self.logger.info(f"Logging in to {nation}")
         url = f"https://www.nationstates.net/page=display_region/region={self._AUTH_REGION}"
         # shoutouts to roavin for telling me i had to have page=display_region in the url so it'd work with a userclick parameter
 
@@ -288,7 +313,7 @@ class NSSession:
         Returns:
             bool: True if the flag was changed, False otherwise
         """
-        print("Changing nation flag")
+        self.logger.info("Changing nation flag")
         # THIS WAS SO FUCKING FRUSTRATING BUT IT WORKS NOW AND IM NEVER TOUCHING THIS BULLSHIT UNLESS NS BREAKS IT AGAIN
         url = "https://www.nationstates.net/cgi-bin/upload.cgi"
 
@@ -309,7 +334,7 @@ class NSSession:
             self._refresh_auth_values()
             return True
         elif "Just a moment..." in response.text:
-            print(
+            self.logger.warning(
                 "Cloudflare blocked you idiot get fucked have fun with that like I had to lmaoooooooooo"
             )
         return False
@@ -344,7 +369,7 @@ class NSSession:
         Returns:
             bool: True if changes were successful, False otherwise.
         """
-        print("Changing nation settings")
+        self.logger.info("Changing nation settings")
         url = "https://www.nationstates.net/template-overall=none/page=settings"
 
         data = {
@@ -378,7 +403,7 @@ class NSSession:
         Returns:
             bool: True if the move was successful, False otherwise
         """
-        print(f"Moving to {region}")
+        self.logger.info(f"Moving to {region}")
         url = "https://www.nationstates.net/template-overall=none/page=change_region"
 
         data = {"region_name": region, "move_region": "1"}
@@ -401,7 +426,7 @@ class NSSession:
         Returns:
             bool: True if the vote was successful, False otherwise
         """
-        print(f"Voting on poll {pollid}")
+        self.logger.info(f"Voting on poll {pollid}")
         url = f"https://www.nationstates.net/template-overall=none/page=poll/p={pollid}"
 
         data = {"pollid": pollid, "q1": option, "poll_submit": "1"}
@@ -419,7 +444,7 @@ class NSSession:
         Returns:
             bool: True if the join was successful, False otherwise
         """
-        print(f"Joining WA with {nation}")
+        self.logger.info(f"Joining WA with {nation}")
         url = "https://www.nationstates.net/cgi-bin/join_un.cgi"
 
         data = {"nation": canonicalize(nation), "appid": app_id.strip()}
@@ -437,7 +462,7 @@ class NSSession:
         Returns:
             bool: True if the resignation was successful, False otherwise
         """
-        print("Resigning from WA")
+        self.logger.info("Resigning from WA")
         url = "https://www.nationstates.net/template-overall=none/page=UN_status"
 
         data = {"action": "leave_UN", "submit": "1"}
@@ -454,7 +479,7 @@ class NSSession:
         Returns:
             bool: True if the application was successful, False otherwise
         """
-        print("Applying to WA")
+        self.logger.info("Applying to WA")
         url = "https://www.nationstates.net/template-overall=none/page=UN_status"
 
         data = {"action": "join_UN"}
@@ -479,7 +504,7 @@ class NSSession:
         Returns:
             bool: True if the endorsement was successful, False otherwise
         """
-        print(f"Endorsing {nation}")
+        self.logger.info(f"Endorsing {nation}")
         url = "https://www.nationstates.net/cgi-bin/endorse.cgi"
 
         data = {
@@ -497,7 +522,7 @@ class NSSession:
             bool: Whether it was successful or not
         """
 
-        print("Clearing dossier")
+        self.logger.info("Clearing dossier")
         url = "https://www.nationstates.net/template-overall=none/page=dossier"
         data = {"clear_dossier": "1"}
         response = self.request(url, data)
@@ -519,7 +544,7 @@ class NSSession:
             raise ValueError("council must be 'ga' or 'sc'")
         if vote not in ["for", "against"]:
             raise ValueError("vote must be 'for' or 'against'")
-        print("Voting on WA resolution")
+        self.logger.info("Voting on WA resolution")
 
         url = f"https://www.nationstates.net/template-overall=none/page={council}"
         data = {
@@ -551,7 +576,7 @@ class NSSession:
         Returns:
             bool: Whether the nation was successfully created or not
         """
-        print("Founding new nation")
+        self.logger.info("Founding new nation")
         url = "https://www.nationstates.net/cgi-bin/build_nation.cgi"
         data = {
             "name": nation_name,
