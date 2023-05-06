@@ -16,11 +16,11 @@
 
 import time  # for ratelimiting and userclick
 import logging  # for logging
-# end standard library imports
 import keyboard  # for the required user input
 import requests  # for http stuff
 from tendo.singleton import SingleInstance  # so it can only be run once at a time
 from bs4 import BeautifulSoup  # for parsing html and xml
+from . import valid_tags  # for valid region tags
 
 
 def canonicalize(string: str) -> str:
@@ -59,7 +59,7 @@ class NSSession:
             link_to_src (str, optional): Link to the source code of your script.
             logger (logging.Logger | None, optional): Logger to use. Will create its own with name "NSDotPy" if none is specified. Defaults to None.
         """
-        self.VERSION = "1.0.3"
+        self.VERSION = "1.1.0"
         # Initialize logger
         if not logger:
             self._init_logger()
@@ -78,12 +78,12 @@ class NSSession:
         # If a link to the source code is provided, add it to the user agent
         # Initialize nationstates specific stuff
         self._ns_server = "1"
-        self._AUTH_REGION = "rwby"
+        self._auth_region = "rwby"
         self.chk: str = ""
         self.localid: str = ""
         self.pin: str = ""
-        self.current_nation: str = ""
-        self.current_region: str = ""
+        self.nation: str = ""
+        self.region: str = ""
         self.keybind = keybind
         self.logger.info(f"Initialized. Keybind to continue is {self.keybind}.")
 
@@ -117,13 +117,13 @@ class NSSession:
             # you should never really need the pin but just in case i'll store it
             self.pin = pin
         if soup.find("a", {"class": "STANDOUT"}):
-            self.current_region = canonicalize(
+            self.region = canonicalize(
                 soup.find_all("a", {"class": "STANDOUT"})[1].text
             )
 
     def _refresh_auth_values(self):
         response = self.request(
-            f"https://www.nationstates.net/page=display_region/region={self._AUTH_REGION}",
+            f"https://www.nationstates.net/page=display_region/region={self._auth_region}",
             data={"theme": "century"},
         )
         self._get_auth_values(response)
@@ -142,6 +142,19 @@ class NSSession:
         while keyboard.is_pressed(key):
             pass
         return int(time.time() * 1000)
+
+    def _get_detag_wfe(self) -> str:
+        """Gets the detagged WFE of the region you're in.
+
+        Returns:
+            str: The detagged WFE"""
+        self.logger.info(f"Getting detagged WFE for {self.region}...")
+        response = self.request(
+            f"https://greywardens.xyz/tools/wfe_index/region={self.region}",
+        )
+        soup = BeautifulSoup(response.text, "html.parser")
+        # the safest bet for a detag wfe is the first wfe of the region
+        return soup.find_all("pre")[-1].text
 
     def _validate_fields(self, data: dict):
         max_lengths = {
@@ -171,7 +184,7 @@ class NSSession:
     def _html_request(
         self, url, data={}, files=None, allow_redirects=False, auth=None
     ) -> requests.Response:
-        # there's no reason to be adding chk and localid if we're logging in
+        data |= {"chk": self.chk, "localid": self.localid}
         userclick = self._wait_for_input(self.keybind)
         # userclick is the number of milliseconds since the epoch, admin uses this for help enforcing the simultaneity rule
         response = self._session.post(
@@ -207,7 +220,7 @@ class NSSession:
         response = self._html_request(url, auth=(user, password))
         if response.status_code == 200:
             self._ns_server = "2"
-            self._AUTH_REGION = "the_black_hawks"
+            self._auth_region = "the_black_hawks"
             return True
         return False
 
@@ -230,10 +243,15 @@ class NSSession:
             auth = (self._auth_user, self._auth_password)
         if any(
             banned_page in canonicalize(url)
-            for banned_page in ["page=telegrams", "page=dilemmas"]
+            for banned_page in [
+                "page=telegrams",
+                "page=dilemmas",
+                "page=compose_telegram",
+                "page=store",
+            ]
         ):
             raise ValueError(
-                "You cannot use a tool to interact with telegrams or issues. Read up on the script rules: https://forum.nationstates.net/viewtopic.php?p=16394966#p16394966"
+                "You cannot use a tool to interact with telegrams, issues, getting help, or the store. Read up on the script rules: https://forum.nationstates.net/viewtopic.php?p=16394966#p16394966"
             )
         if "api.cgi" in canonicalize(url):
             # deal with ratelimiting if its an api request
@@ -287,7 +305,7 @@ class NSSession:
             bool: True if login was successful, False otherwise
         """
         self.logger.info(f"Logging in to {nation}")
-        url = f"https://www.nationstates.net/page=display_region/region={self._AUTH_REGION}"
+        url = f"https://www.nationstates.net/page=display_region/region={self._auth_region}"
         # shoutouts to roavin for telling me i had to have page=display_region in the url so it'd work with a userclick parameter
 
         data = {
@@ -305,7 +323,7 @@ class NSSession:
         if not soup.find("body", {"data-nname": canonicalize(nation)}):
             return False
 
-        self.current_nation = canonicalize(nation)
+        self.nation = canonicalize(nation)
         return True
 
     def change_nation_flag(self, flag_filename: str) -> bool:
@@ -317,12 +335,12 @@ class NSSession:
         Returns:
             bool: True if the flag was changed, False otherwise
         """
-        self.logger.info("Changing nation flag")
+        self.logger.info(f"Changing flag on {self.nation}")
         # THIS WAS SO FUCKING FRUSTRATING BUT IT WORKS NOW AND IM NEVER TOUCHING THIS BULLSHIT UNLESS NS BREAKS IT AGAIN
         url = "https://www.nationstates.net/cgi-bin/upload.cgi"
 
         data = {
-            "nationname": self.current_nation,
+            "nationname": self.nation,
         }
         files = {
             "file": (
@@ -373,7 +391,7 @@ class NSSession:
         Returns:
             bool: True if changes were successful, False otherwise.
         """
-        self.logger.info("Changing nation settings")
+        self.logger.info(f"Changing settings on {self.nation}")
         url = "https://www.nationstates.net/template-overall=none/page=settings"
 
         data = {
@@ -407,7 +425,7 @@ class NSSession:
         Returns:
             bool: True if the move was successful, False otherwise
         """
-        self.logger.info(f"Moving to {region}")
+        self.logger.info(f"Moving {self.nation} to {region}")
         url = "https://www.nationstates.net/template-overall=none/page=change_region"
 
         data = {"region_name": region, "move_region": "1"}
@@ -416,7 +434,7 @@ class NSSession:
         response = self.request(url, data)
 
         if "Success!" in response.text:
-            self.current_region = canonicalize(region)
+            self.region = canonicalize(region)
             return True
         return False
 
@@ -430,13 +448,15 @@ class NSSession:
         Returns:
             bool: True if the vote was successful, False otherwise
         """
-        self.logger.info(f"Voting on poll {pollid}")
+        self.logger.info(f"Voting on poll {pollid} with {self.nation}")
         url = f"https://www.nationstates.net/template-overall=none/page=poll/p={pollid}"
 
         data = {"pollid": pollid, "q1": option, "poll_submit": "1"}
         response = self.request(url, data)
 
         return "Your vote has been lodged." in response.text
+
+    # below are functions that are related to the WA
 
     def join_wa(self, nation: str, app_id: str) -> bool:
         """Joins the WA with the given nation.
@@ -483,7 +503,7 @@ class NSSession:
         Returns:
             bool: True if the application was successful, False otherwise
         """
-        self.logger.info("Applying to WA")
+        self.logger.info(f"Applying to WA with {self.nation}")
         url = "https://www.nationstates.net/template-overall=none/page=UN_status"
 
         data = {"action": "join_UN"}
@@ -508,7 +528,9 @@ class NSSession:
         Returns:
             bool: True if the endorsement was successful, False otherwise
         """
-        self.logger.info(f"Endorsing {nation}")
+        self.logger.info(
+            f"{('Unendorsing', 'Endorsing')[endorse]} {nation} with {self.nation}"
+        )
         url = "https://www.nationstates.net/cgi-bin/endorse.cgi"
 
         data = {
@@ -526,7 +548,7 @@ class NSSession:
             bool: Whether it was successful or not
         """
 
-        self.logger.info("Clearing dossier")
+        self.logger.info(f"Clearing dossier on {self.nation}")
         url = "https://www.nationstates.net/template-overall=none/page=dossier"
         data = {"clear_dossier": "1"}
         response = self.request(url, data)
@@ -543,7 +565,9 @@ class NSSession:
         Returns:
             bool: Whether the vote was successful or not
         """
-
+        self.logger.info(
+            f"Voting {vote} on {council.upper()} resolution with {self.nation}"
+        )
         if council not in ["ga", "sc"]:
             raise ValueError("council must be 'ga' or 'sc'")
         if vote not in ["for", "against"]:
@@ -604,6 +628,186 @@ class NSSession:
         self._refresh_auth_values()
         return True
 
+    # methods for region control
+
+    def upload_to_region(self, type: str, filename: str) -> str:
+        """Uploads a file to the current region.
+
+        Args:
+            type (str): Type of file to upload. Must be "flag" or "banner".
+            filename (str): Name of the file to upload. e.g. "myflag.png"
+
+        Raises:
+            ValueError: If type is not "flag" or "banner"
+
+        Returns:
+            str: _description_
+        """
+        self.logger.info(f"Uploading {filename} to {self.region}")
+        if type not in ["flag", "banner"]:
+            raise ValueError("type must be 'flag' or 'banner'")
+        url = "https://www.nationstates.net/cgi-bin/upload.cgi"
+        data = {
+            "uploadtype": f"r{type}",
+            "page": "region_control",
+            "region": self.region,
+            "expect": "json",
+        }
+        files = {
+            f"file_upload_r{type}": (
+                filename,
+                open(filename, "rb"),
+                f"image/{filename.lower().split('.')[-1]}",
+            )
+        }
+        response = self.request(url, data, files=files)
+
+        return response.json()["id"]
+
+    def set_flag_and_banner(
+        self, flag_id: str = "", banner_id: str = "", flag_mode: str = ""
+    ) -> bool:
+        """Sets the uploaded flag and/or banner for the current region.
+
+        Args:
+            flag_id (str, optional): ID of the flag, uploaded with upload_to_region(). Defaults to "".
+            banner_id (str, optional): ID of the banner, uploaded with upload_to_region(). Defaults to "".
+            flagmode (str, optional): Must be "flag" which will have a shadow, or "logo" which will not, or "" to not change it. Defaults to "".
+
+        Raises:
+            ValueError: If flagmode is not "flag", "logo", or ""
+
+        Returns:
+            bool: Whether the change was successful or not
+        """
+        self.logger.info(f"Setting flag and banner for {self.region}")
+        if flag_mode not in ["flag", "logo", ""]:
+            raise ValueError("flagmode must be 'flag', 'logo', or ''")
+        self.logger.info(f"Setting flag and banner for {self.region}")
+        url = "https://www.nationstates.net/template-overall=none/page=region_control/"
+        data = {
+            "newflag": flag_id,
+            "newbanner": banner_id,
+            "saveflagandbannerchanges": "1",
+            "flagmode": flag_mode,
+        }
+        # remove entries with empty values
+        data = {k: v for k, v in data.items() if v}
+
+        response = self.request(url, data)
+
+        return "Regional banner/flag updated!" in response.text
+
+    def change_wfe(self, wfe: str = "") -> bool:
+        """Changes the WFE of the current region.
+
+        Args:
+            wfe (str, optional): _description_. Defaults to the oldest WFE the region has, for detags.
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        self.logger.info(f"Changing WFE for {self.region}")
+        if not wfe:
+            wfe = self._get_detag_wfe()  # haku im sorry for hitting your site so much
+        url = "https://www.nationstates.net/template-overall=none/page=region_control/"
+        data = {
+            "message": wfe.encode("iso-8859-1", "xmlcharrefreplace"),  # lol.
+            "setwfebutton": "1",
+        }
+        response = self.request(url, data)
+        return "World Factbook Entry updated!" in response.text
+
+    # methods for embassies
+
+    def request_embassy(self, target: str) -> bool:
+        """Requests an embassy with a region.
+
+        Args:
+            target (str): The region to request the embassy with.
+
+        Returns:
+            bool: Whether the request was successfully sent or not
+        """
+        url = "https://www.nationstates.net/template-overall=none/page=region_control/"
+        data = {
+            "requestembassyregion": target,
+            "requestembassy": "1",  # it's silly that requesting needs this but not closing, aborting, or cancelling
+        }
+        response = self.request(url, data)
+        return "Your proposal for the construction of embassies with" in response.text
+
+    def close_embassy(self, target: str) -> bool:
+        """Closes an embassy with a region.
+
+        Args:
+            target (str): The region with which to close the embassy.
+
+        Returns:
+            bool: Whether the embassy was successfully closed or not
+        """
+        url = "https://www.nationstates.net/template-overall=none/page=region_control/"
+        data = {"cancelembassyregion": target}
+        response = self.request(url, data)
+        return " has been scheduled for demolition." in response.text
+
+    def abort_embasy(self, target: str) -> bool:
+        """Aborts an embassy with a region.
+
+        Args:
+            target (str): The region with which to abort the embassy.
+
+        Returns:
+            bool: Whether the embassy was successfully aborted or not
+        """
+        url = "https://www.nationstates.net/template-overall=none/page=region_control/"
+        data = {"abortembassyregion": target}
+        response = self.request(url, data)
+        return " aborted." in response.text
+
+    def cancel_embassy(self, target: str) -> bool:
+        """Cancels an embassy with a region.
+
+        Args:
+            target (str): The region with which to cancel the embassy.
+
+        Returns:
+            bool: Whether the embassy was successfully cancelled or not
+        """
+        url = "https://www.nationstates.net/template-overall=none/page=region_control/"
+        data = {"cancelembassyclosureregion": target}
+        response = self.request(url, data)
+        return "Embassy closure order cancelled." in response.text
+
+    # end methods for embassies
+
+    def tag(self, action: str, tag: str) -> bool:
+        """Adds or removes a tag to the current region.
+
+        Args:
+            action (str): The action to take. Must be "add" or "remove".
+            tag (str): The tag to add or remove.
+
+        Raises:
+            ValueError: If action is not "add" or "remove", or if tag is not a valid tag.
+
+        Returns:
+            bool: Whether the tag was successfully added or removed
+        """
+        if action not in ["add", "remove"]:
+            raise ValueError("action must be 'add' or 'remove'")
+        if canonicalize(tag) not in valid_tags.tags:
+            raise ValueError(f"{tag} is not a valid tag")
+        url = "https://www.nationstates.net/template-overall=none/page=region_control/"
+        data = {
+            f"{action}_tag": canonicalize(tag),
+            "updatetagsbutton": "1",
+        }
+        response = self.request(url, data)
+        return "Region Tags updated!" in response.text
+
+    # end methods for region control
+
 
 if __name__ == "__main__":
-    print("this is a module, not a script")
+    print("this is a module/library, not a script")
