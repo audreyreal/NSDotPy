@@ -808,7 +808,7 @@ class NSSession:
 
     # end methods for region control
     
-     def junk_card(self,id: str,season:str ):
+    def junk_card(self, id: str, season: str):
         """Junks a given card based on id and season.
         Returns:
             bool: True if the junk was successful, False otherwise
@@ -816,10 +816,11 @@ class NSSession:
         self.logger.info(f"Junking card {id},from season {season}")
         url = f"https://www.nationstates.net/template-overall=none/page=deck"
 
-        data = {"page": "ajax3", "a": "junkcard","card":id,"season":season}
+        data = {"page": "ajax3", "a": "junkcard", "card": id, "season": season}
         response = self.request(url, data)
 
         return "Your Deck" in response.text
+
 
 
 
