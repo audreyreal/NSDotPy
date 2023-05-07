@@ -821,6 +821,18 @@ class NSSession:
 
         return "Your Deck" in response.text
 
+    def open_pack(self):
+        """Opens a pack of cards.
+        Returns:
+            list of cardIDs opened
+        """
+        cards = []
+        self.logger.info(f"Opening pack {each}of {count}")
+        url = f"https://www.nationstates.net/template-overall=none/page=deck"
+
+        data = {"open_loot_box": "1"}
+        response = self.request(url, data)
+        return "Tap cards to reveal..." in response.text
 
 
 
