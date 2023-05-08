@@ -807,6 +807,90 @@ class NSSession:
         return "Region Tags updated!" in response.text
 
     # end methods for region control
+    
+    def junk_card(self, id: str, season: str):
+        """Junks a given card based on id and season.
+        Returns:
+            bool: True if the junk was successful, False otherwise
+        """
+        self.logger.info(f"Junking card {id},from season {season}")
+        url = f"https://www.nationstates.net/template-overall=none/page=deck"
+
+        data = {"page": "ajax3", "a": "junkcard", "card": id, "season": season}
+        response = self.request(url, data)
+
+        return "Your Deck" in response.text
+
+    def open_pack(self):
+        """Opens a pack of cards.
+        Returns:
+            list of cardIDs opened
+        """
+        cards = []
+        self.logger.info(f"Opening pack {each}of {count}")
+        url = f"https://www.nationstates.net/template-overall=none/page=deck"
+
+        data = {"open_loot_box": "1"}
+        response = self.request(url, data)
+        return "Tap cards to reveal..." in response.text
+    def ask(self, price: str, card_id, season):
+        """Puts an ask on card_id in season
+        Returns:
+            true if a success and false if not.
+        """
+
+        self.logger.info(f"Asking for {price} on {card_id} season {season}")
+        url = f"https://www.nationstates.net/page=deck/card={card_id}/season={season}"
+
+        data = {"auction_ask": price, "auction_submit": ask}
+        response = self.request(url, data)
+        return f"Your ask of {price} has been lodged." in response.text
+
+
+    def bid(self, price: str, card_id, season):
+        """Puts a bid on card_id in season
+        Returns:
+            true if a success and false if not.
+        """
+
+        self.logger.info(f"Putting a bid for {price} on {card_id} season {season}")
+        url = f"https://www.nationstates.net/page=deck/card={card_id}/season={season}"
+
+        data = {"auction_bid": price, "auction_submit": bid}
+        response = self.request(url, data)
+
+        return f"Your bid of {price} has been lodged." in response.text
+
+
+    def remove_ask(self, price: str, card_id, season):
+        """Removes an ask on card_id in season at the set price
+        Returns:
+            true if a success and false if not.
+        """
+
+        self.logger.info(f"removing an ask for {price} on {card_id} season {season}")
+        url = f"https://www.nationstates.net/page=deck/card={card_id}/season={season}"
+
+        data = {"new_price": price, "remove_ask_price": price}
+        response = self.request(url, data)
+        return f"Removed your ask for {price}" in response.text
+
+
+    def remove_bid(self, price: str, card_id, season):
+        """Removes a bid on card_id in season at price
+        Returns:
+            true if a success and false if not.
+        """
+
+        self.logger.info(f"Removing a bid for {price} on {card_id} season {season}")
+        url = f"https://www.nationstates.net/page=deck/card={card_id}/season={season}"
+
+        data = {"new_price": price, "remove_bid_price": price}
+        response = self.request(url, data)
+
+        return f"Removed your bid for {price}" in response.text
+
+
 
 
 if __name__ == "__main__":
