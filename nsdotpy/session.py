@@ -65,7 +65,7 @@ class NSSession:
             link_to_src (str, optional): Link to the source code of your script.
             logger (logging.Logger | None, optional): Logger to use. Will create its own with name "NSDotPy" if none is specified. Defaults to None.
         """
-        self.VERSION = "1.1.3"
+        self.VERSION = "1.1.4"
         # Initialize logger
         if not logger:
             self._init_logger()
@@ -129,7 +129,7 @@ class NSSession:
             self.pin = pin
         if soup.find("a", {"class": "STANDOUT"}):
             self.region = canonicalize(
-                soup.find_all("a", {"class": "STANDOUT"})[1].text
+                soup.find_all("a", {"class": "STANDOUT"})[1].attrs["href"].split("=")[1]
             )
 
     def _refresh_auth_values(self):
