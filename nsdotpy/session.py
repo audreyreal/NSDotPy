@@ -14,12 +14,18 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with NSDotPy. If not, see <https://www.gnu.org/licenses/>.
 
+# standard library imports
 import time  # for ratelimiting and userclick
 import logging  # for logging
+import mimetypes  # for flag and banner uploading
+
+# external library imports
 import keyboard  # for the required user input
 import requests  # for http stuff
 from tendo.singleton import SingleInstance  # so it can only be run once at a time
 from bs4 import BeautifulSoup  # for parsing html and xml
+
+# local imports
 from . import valid_tags  # for valid region tags
 
 
@@ -59,7 +65,7 @@ class NSSession:
             link_to_src (str, optional): Link to the source code of your script.
             logger (logging.Logger | None, optional): Logger to use. Will create its own with name "NSDotPy" if none is specified. Defaults to None.
         """
-        self.VERSION = "1.1.1"
+        self.VERSION = "1.1.4"
         # Initialize logger
         if not logger:
             self._init_logger()
@@ -88,7 +94,12 @@ class NSSession:
         self.logger.info(f"Initialized. Keybind to continue is {self.keybind}.")
 
     def _set_user_agent(
-        self, script_name, script_version, script_author, script_user, link_to_src
+        self,
+        script_name: str,
+        script_version: str,
+        script_author: str,
+        script_user: str,
+        link_to_src: str,
     ):
         self.user_agent = (
             f"{script_name}/{script_version} (by:{script_author}; usedBy:{script_user})"
@@ -118,7 +129,7 @@ class NSSession:
             self.pin = pin
         if soup.find("a", {"class": "STANDOUT"}):
             self.region = canonicalize(
-                soup.find_all("a", {"class": "STANDOUT"})[1].text
+                soup.find_all("a", {"class": "STANDOUT"})[1].attrs["href"].split("=")[1]
             )
 
     def _refresh_auth_values(self):
@@ -178,7 +189,7 @@ class NSSession:
             # check if pretitle contains any non-alphanumeric characters (except spaces)
             if key == "pretitle" and not value.replace(" ", "").isalnum():
                 raise ValueError(
-                    "Pretitle should only contain alphanumeric characters or space."
+                    "Pretitle should only contain alphanumeric characters or spaces."
                 )
 
     def _html_request(
@@ -346,7 +357,7 @@ class NSSession:
             "file": (
                 flag_filename,
                 open(flag_filename, "rb"),
-                f"image/{flag_filename.lower().split('.')[-1]}",
+                mimetypes.guess_type(flag_filename)[0],
             )
         }
 
@@ -657,7 +668,7 @@ class NSSession:
             f"file_upload_r{type}": (
                 filename,
                 open(filename, "rb"),
-                f"image/{filename.lower().split('.')[-1]}",
+                mimetypes.guess_type(filename)[0],
             )
         }
         response = self.request(url, data, files=files)
@@ -729,6 +740,7 @@ class NSSession:
         Returns:
             bool: Whether the request was successfully sent or not
         """
+        self.logger.info(f"Requesting embassy with {target}")
         url = "https://www.nationstates.net/template-overall=none/page=region_control/"
         data = {
             "requestembassyregion": target,
@@ -746,6 +758,7 @@ class NSSession:
         Returns:
             bool: Whether the embassy was successfully closed or not
         """
+        self.logger.info(f"Closing embassy with {target}")
         url = "https://www.nationstates.net/template-overall=none/page=region_control/"
         data = {"cancelembassyregion": target}
         response = self.request(url, data)
@@ -760,6 +773,7 @@ class NSSession:
         Returns:
             bool: Whether the embassy was successfully aborted or not
         """
+        self.logger.info(f"Aborting embassy with {target}")
         url = "https://www.nationstates.net/template-overall=none/page=region_control/"
         data = {"abortembassyregion": target}
         response = self.request(url, data)
@@ -774,6 +788,7 @@ class NSSession:
         Returns:
             bool: Whether the embassy was successfully cancelled or not
         """
+        self.logger.info(f"Cancelling embassy with {target}")
         url = "https://www.nationstates.net/template-overall=none/page=region_control/"
         data = {"cancelembassyclosureregion": target}
         response = self.request(url, data)
@@ -798,6 +813,7 @@ class NSSession:
             raise ValueError("action must be 'add' or 'remove'")
         if canonicalize(tag) not in valid_tags.tags:
             raise ValueError(f"{tag} is not a valid tag")
+        self.logger.info(f"{action.capitalize()}ing tag {tag} for {self.region}")
         url = "https://www.nationstates.net/template-overall=none/page=region_control/"
         data = {
             f"{action}_tag": canonicalize(tag),
@@ -809,110 +825,108 @@ class NSSession:
     # end methods for region control
 
 
-def junk_card(self, id: str, season: str) -> bool:
-    """Junks a card from the current nation's deck.
-    Args:
-        id (str): ID of the card to junk
-        season (str): Season of the card to junk
-    Returns:
-        bool: Whether the card was successfully junked or not
-    """
-    self.logger.info(f"Junking card {id} from season {season}")
-    url = "https://www.nationstates.net/template-overall=none/page=deck"
+    def junk_card(self, id: str, season: str) -> bool:
+        """Junks a card from the current nation's deck.
+        Args:
+            id (str): ID of the card to junk
+            season (str): Season of the card to junk
+        Returns:
+            bool: Whether the card was successfully junked or not
+        """
+        self.logger.info(f"Junking card {id} from season {season}")
+        url = "https://www.nationstates.net/template-overall=none/page=deck"
 
-    data = {"page": "ajax3", "a": "junkcard", "card": id, "season": season}
-    response = self.request(url, data)
+        data = {"page": "ajax3", "a": "junkcard", "card": id, "season": season}
+        response = self.request(url, data)
 
-    return "Your Deck" in response.text
-
-
-def open_pack(self) -> bool:
-    """Opens a card pack.
-
-    Returns:
-        bool: Whether the bid was successfully removed or not"""
-    self.logger.info(f"Opening trading card pack")
-    url = "https://www.nationstates.net/template-overall=none/page=deck"
-    data = {"open_loot_box": "1"}
-    response = self.request(url, data)
-    return "Tap cards to reveal..." in response.text
+        return "Your Deck" in response.text
 
 
-def ask(self, price: str, card_id: str, season: str) -> bool:
-    """Puts an ask at price on a card in a season
+    def open_pack(self) -> bool:
+        """Opens a card pack.
 
-    Args:
-           price (str): Price to ask
-           card_id (str): ID of the card
-           season (str): Season of the card
-
-       Returns:
-           bool: Whether the ask was successfully lodged or not
-    """
-    self.logger.info(f"Asking for {price} on {card_id} season {season}")
-    url = f"https://www.nationstates.net/page=deck/card={card_id}/season={season}"
-
-    data = {"auction_ask": price, "auction_submit": "ask"}
-    response = self.request(url, data)
-    return f"Your ask of {price} has been lodged." in response.text
+        Returns:
+            bool: Whether the bid was successfully removed or not"""
+        self.logger.info(f"Opening trading card pack")
+        url = "https://www.nationstates.net/template-overall=none/page=deck"
+        data = {"open_loot_box": "1"}
+        response = self.request(url, data)
+        return "Tap cards to reveal..." in response.text
 
 
-def bid(self, price: str, card_id: str, season: str) -> bool:
-    """Places a bid on a card in a season
+    def ask(self, price: str, card_id: str, season: str) -> bool:
+        """Puts an ask at price on a card in a season
 
-    Args:
-        price (str): Amount of bank to bid
-        card_id (str): ID of the card
-        season (str): Season of the card
+        Args:
+               price (str): Price to ask
+               card_id (str): ID of the card
+               season (str): Season of the card
 
-    Returns:
-        bool: Whether the bid was successfully lodged or not
-    """
-    self.logger.info(f"Putting a bid for {price} on {card_id} season {season}")
-    url = f"https://www.nationstates.net/page=deck/card={card_id}/season={season}"
+           Returns:
+               bool: Whether the ask was successfully lodged or not
+        """
+        self.logger.info(f"Asking for {price} on {card_id} season {season}")
+        url = f"https://www.nationstates.net/page=deck/card={card_id}/season={season}"
 
-    data = {"auction_bid": price, "auction_submit": "bid"}
-    response = self.request(url, data)
-
-    return f"Your bid of {price} has been lodged." in response.text
-
-
-def remove_ask(self, price: str, card_id: str, season: str) -> bool:
-    """Removes an ask on card_id in season at price
-    Args:
-        price (str): Price of the ask to remove
-        card_id (str): ID of the card
-        season (str): Season of the card
-    Returns:
-        bool: Whether the ask was successfully removed or not
-    """
-
-    self.logger.info(f"removing an ask for {price} on {card_id} season {season}")
-    url = f"https://www.nationstates.net/page=deck/card={card_id}/season={season}"
-
-    data = {"new_price": price, "remove_ask_price": price}
-    response = self.request(url, data)
-    return f"Removed your ask for {price}" in response.text
+        data = {"auction_ask": price, "auction_submit": "ask"}
+        response = self.request(url, data)
+        return f"Your ask of {price} has been lodged." in response.text
 
 
-def remove_bid(self, price: str, card_id: str, season: str) -> bool:
-    """Removes a big on a card
-    Args:
-        price (str): Price of the bid to remove
-        card_id (str): ID of the card
-        season (str): Season of the card
-    Returns:
-        bool: Whether the bid was successfully removed or not
-    """
+    def bid(self, price: str, card_id: str, season: str) -> bool:
+        """Places a bid on a card in a season
 
-    self.logger.info(f"Removing a bid for {price} on {card_id} season {season}")
-    url = f"https://www.nationstates.net/page=deck/card={card_id}/season={season}"
+        Args:
+            price (str): Amount of bank to bid
+            card_id (str): ID of the card
+            season (str): Season of the card
 
-    data = {"new_price": price, "remove_bid_price": price}
-    response = self.request(url, data)
+        Returns:
+            bool: Whether the bid was successfully lodged or not
+        """
+        self.logger.info(f"Putting a bid for {price} on {card_id} season {season}")
+        url = f"https://www.nationstates.net/page=deck/card={card_id}/season={season}"
 
-    return f"Removed your bid for {price}" in response.text
+        data = {"auction_bid": price, "auction_submit": "bid"}
+        response = self.request(url, data)
+
+        return f"Your bid of {price} has been lodged." in response.text
+
+    def remove_ask(self, price: str, card_id: str, season: str) -> bool:
+        """Removes an ask on card_id in season at price
+        Args:
+            price (str): Price of the ask to remove
+            card_id (str): ID of the card
+            season (str): Season of the card
+        Returns:
+            bool: Whether the ask was successfully removed or not
+        """
+
+        self.logger.info(f"removing an ask for {price} on {card_id} season {season}")
+        url = f"https://www.nationstates.net/page=deck/card={card_id}/season={season}"
+
+        data = {"new_price": price, "remove_ask_price": price}
+        response = self.request(url, data)
+        return f"Removed your ask for {price}" in response.text
 
 
+    def remove_bid(self, price: str, card_id: str, season: str) -> bool:
+        """Removes a big on a card
+        Args:
+            price (str): Price of the bid to remove
+            card_id (str): ID of the card
+            season (str): Season of the card
+        Returns:
+            bool: Whether the bid was successfully removed or not
+        """
+
+        self.logger.info(f"Removing a bid for {price} on {card_id} season {season}")
+        url = f"https://www.nationstates.net/page=deck/card={card_id}/season={season}"
+
+        data = {"new_price": price, "remove_bid_price": price}
+        response = self.request(url, data)
+
+        return f"Removed your bid for {price}" in response.text
+        
 if __name__ == "__main__":
     print("this is a module/library, not a script")
