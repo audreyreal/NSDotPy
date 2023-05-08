@@ -807,7 +807,8 @@ class NSSession:
         return "Region Tags updated!" in response.text
 
     # end methods for region control
-    
+
+
 def junk_card(self, id: str, season: str) -> bool:
     """Junks a card from the current nation's deck.
     Args:
