@@ -1,4 +1,4 @@
-# This file is part of NSDotPy, a wrapper around requests that makes interacting
+# This file is part of NSDotPy, a wrapper around httpx that makes interacting
 # with the HTML nationstates.net site legally and efficiently easier.
 #
 # NSDotPy is free software: you can redistribute it and/or modify
@@ -17,11 +17,12 @@
 # standard library imports
 import time  # for ratelimiting and userclick
 import logging  # for logging
+import logging.config  # for logging configuration
 import mimetypes  # for flag and banner uploading
 
 # external library imports
 import keyboard  # for the required user input
-import requests  # for http stuff
+import httpx  # for http stuff
 from tendo.singleton import SingleInstance  # so it can only be run once at a time
 from bs4 import BeautifulSoup  # for parsing html and xml
 
@@ -52,7 +53,7 @@ class NSSession:
         link_to_src: str = "",
         logger: logging.Logger | None = None,
     ):
-        """A wrapper around requests that abstracts away
+        """A wrapper around httpx that abstracts away
         interacting with the HTML nationstates.net site.
         Focused on legality, correctness, and ease of use.
 
@@ -74,8 +75,8 @@ class NSSession:
         # Attach the tendo singleton to the session object so it can
         # only be run once at a time, avoiding simultaneity issues
         self._me = SingleInstance()
-        # Create a new requests session
-        self._session = requests.Session()
+        # Create a new httpx session
+        self._session = httpx.Client(http2=True, timeout=30)  # ns can b slow
         # Set the user agent to the script name, version, author, and user as recommended in the script rules thread:
         # https://forum.nationstates.net/viewtopic.php?p=16394966&sid=be37623536dbc8cee42d8d043945b887#p16394966
         self._set_user_agent(
@@ -111,13 +112,29 @@ class NSSession:
 
     def _init_logger(self):
         self.logger = logging.getLogger("NSDotPy")
-        logging.basicConfig(
-            level=logging.INFO,
-            format="%(asctime)s %(levelname)s %(message)s",
-            datefmt="%m/%d/%Y %I:%M:%S %p",
-        )
+        config = {
+            "version": 1,
+            "disable_existing_loggers": False,
+            "formatters": {
+                "f": {
+                    "format": "%(asctime)s %(message)s",
+                    "datefmt": "%I:%M:%S %p",
+                }
+            },
+            "handlers": {
+                "console": {
+                    "class": "logging.StreamHandler",
+                    "formatter": "f",
+                }
+            },
+            "loggers": {
+                "NSDotPy": {"handlers": ["console"], "level": "INFO"},
+                "httpx": {"handlers": ["console"], "level": "ERROR"},
+            },
+        }
+        logging.config.dictConfig(config)
 
-    def _get_auth_values(self, response: requests.Response):
+    def _get_auth_values(self, response: httpx.Response):
         soup = BeautifulSoup(response.text, "html.parser")
         # gathering chk and localid so i dont have to worry about authenticating l8r
         if chk := soup.find("input", {"name": "chk"}):
@@ -193,8 +210,8 @@ class NSSession:
                 )
 
     def _html_request(
-        self, url, data={}, files=None, allow_redirects=False, auth=None
-    ) -> requests.Response:
+        self, url, data={}, files=None, follow_redirects=False, auth=()
+    ) -> httpx.Response:
         data |= {"chk": self.chk, "localid": self.localid}
         userclick = self._wait_for_input(self.keybind)
         # userclick is the number of milliseconds since the epoch, admin uses this for help enforcing the simultaneity rule
@@ -202,13 +219,13 @@ class NSSession:
             f"{url}/userclick={userclick}",
             data=data,
             files=files,
-            allow_redirects=allow_redirects,
+            follow_redirects=follow_redirects,
             auth=auth,
         )
         if response.status_code >= 400:
             with open("error.html", "w") as f:
                 f.write(response.text)
-            raise requests.HTTPError(
+            raise httpx.HTTPError(
                 f"Received status code {response.status_code} from {response.url}. Error page saved to error.html."
             )
         self._get_auth_values(response)
@@ -236,8 +253,12 @@ class NSSession:
         return False
 
     def request(
-        self, url: str, data: dict = {}, files: dict = {}, allow_redirects: bool = False
-    ) -> requests.Response:
+        self,
+        url: str,
+        data: dict = {},
+        files: dict = {},
+        follow_redirects: bool = False,
+    ) -> httpx.Response:
         """Sends a request to the given url with the given data and files.
 
         Args:
@@ -246,7 +267,7 @@ class NSSession:
             files (dict, optional): Payload to send with requests that upload files
 
         Returns:
-            requests.Response: The response from the server
+            httpx.Response: The response from the server
         """
         auth = None
         if self._ns_server != "1":
@@ -269,19 +290,19 @@ class NSSession:
             return self.api_request(data, _auth=auth)
         elif "nationstates" in canonicalize(url):
             # do all the things that need to be done for html requests
-            return self._html_request(url, data, files, allow_redirects, auth=auth)
+            return self._html_request(url, data, files, follow_redirects, auth=auth)
         else:
             # if its not nationstates then just pass the request through
-            return self._session.post(url, data=data, allow_redirects=allow_redirects)
+            return self._session.post(url, data=data, follow_redirects=follow_redirects)
 
-    def api_request(self, data: dict, _auth=None) -> requests.Response:
+    def api_request(self, data: dict, _auth=()) -> httpx.Response:
         """Sends a request to the nationstates api with the given data.
 
         Args:
             data (dict): Payload to send with the request, e.g. {"nation": "testlandia", "q": "region"}
 
         Returns:
-            requests.Response: The response from the server
+            httpx.Response: The response from the server
         """
         # TODO: probably move this responsibility to a third party api library to avoid reinventing the wheel
         # if one exists of sufficient quality thats AGPLv3 compatible
