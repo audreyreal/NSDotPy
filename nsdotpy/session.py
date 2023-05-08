@@ -14,12 +14,18 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with NSDotPy. If not, see <https://www.gnu.org/licenses/>.
 
+# standard library imports
 import time  # for ratelimiting and userclick
 import logging  # for logging
+import mimetypes  # for flag and banner uploading
+
+# external library imports
 import keyboard  # for the required user input
 import requests  # for http stuff
 from tendo.singleton import SingleInstance  # so it can only be run once at a time
 from bs4 import BeautifulSoup  # for parsing html and xml
+
+# local imports
 from . import valid_tags  # for valid region tags
 
 
@@ -59,7 +65,7 @@ class NSSession:
             link_to_src (str, optional): Link to the source code of your script.
             logger (logging.Logger | None, optional): Logger to use. Will create its own with name "NSDotPy" if none is specified. Defaults to None.
         """
-        self.VERSION = "1.1.2"
+        self.VERSION = "1.1.3"
         # Initialize logger
         if not logger:
             self._init_logger()
@@ -351,7 +357,7 @@ class NSSession:
             "file": (
                 flag_filename,
                 open(flag_filename, "rb"),
-                f"image/{flag_filename.lower().split('.')[-1]}",
+                mimetypes.guess_type(flag_filename)[0],
             )
         }
 
@@ -662,7 +668,7 @@ class NSSession:
             f"file_upload_r{type}": (
                 filename,
                 open(filename, "rb"),
-                f"image/{filename.lower().split('.')[-1]}",
+                mimetypes.guess_type(filename)[0],
             )
         }
         response = self.request(url, data, files=files)
