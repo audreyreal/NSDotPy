@@ -824,7 +824,6 @@ class NSSession:
 
     # end methods for region control
 
-
     def junk_card(self, id: str, season: str) -> bool:
         """Junks a card from the current nation's deck.
         Args:
@@ -841,7 +840,6 @@ class NSSession:
 
         return "Your Deck" in response.text
 
-
     def open_pack(self) -> bool:
         """Opens a card pack.
 
@@ -852,7 +850,6 @@ class NSSession:
         data = {"open_loot_box": "1"}
         response = self.request(url, data)
         return "Tap cards to reveal..." in response.text
-
 
     def ask(self, price: str, card_id: str, season: str) -> bool:
         """Puts an ask at price on a card in a season
@@ -871,7 +868,6 @@ class NSSession:
         data = {"auction_ask": price, "auction_submit": "ask"}
         response = self.request(url, data)
         return f"Your ask of {price} has been lodged." in response.text
-
 
     def bid(self, price: str, card_id: str, season: str) -> bool:
         """Places a bid on a card in a season
@@ -909,7 +905,6 @@ class NSSession:
         response = self.request(url, data)
         return f"Removed your ask for {price}" in response.text
 
-
     def remove_bid(self, price: str, card_id: str, season: str) -> bool:
         """Removes a big on a card
         Args:
@@ -927,6 +922,7 @@ class NSSession:
         response = self.request(url, data)
 
         return f"Removed your bid for {price}" in response.text
-        
+
+
 if __name__ == "__main__":
     print("this is a module/library, not a script")
