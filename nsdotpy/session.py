@@ -66,7 +66,7 @@ class NSSession:
             link_to_src (str, optional): Link to the source code of your script.
             logger (logging.Logger | None, optional): Logger to use. Will create its own with name "NSDotPy" if none is specified. Defaults to None.
         """
-        self.VERSION = "1.2.0"
+        self.VERSION = "1.2.1"
         # Initialize logger
         if not logger:
             self._init_logger()
@@ -847,11 +847,9 @@ class NSSession:
 
     def junk_card(self, id: str, season: str) -> bool:
         """Junks a card from the current nation's deck.
-
         Args:
             id (str): ID of the card to junk
             season (str): Season of the card to junk
-
         Returns:
             bool: Whether the card was successfully junked or not
         """
@@ -863,56 +861,54 @@ class NSSession:
 
         return "Your Deck" in response.text
 
-    #    def open_pack(self) -> bool:
-    #        """Opens a card pack.
-    #
-    #        Returns:
-    #            bool: Whether the pack was successfully opened or not
-    #        """
-    #        cards = []
-    #        self.logger.info(f"Opening pack {each} of {count}")
-    #        url = "https://www.nationstates.net/template-overall=none/page=deck"
-    #
-    #        data = {"open_loot_box": "1"}
-    #        response = self.request(url, data)
-    #        return "Tap cards to reveal..." in response.text
-    #
-    #    def ask(self, price: str, card_id: str, season: str) -> bool:
-    #        """Asks a price on a card in a season
-    #
-    #        Args:
-    #            price (str): Price to ask
-    #            card_id (str): ID of the card
-    #            season (str): Season of the card
-    #
-    #        Returns:
-    #            bool: Whether theask was successfully lodged or not
-    #        """
-    #        self.logger.info(f"Asking for {price} on {card_id} season {season}")
-    #        url = f"https://www.nationstates.net/page=deck/card={card_id}/season={season}"
-    #
-    #        data = {"auction_ask": price, "auction_submit": ask}
-    #        response = self.request(url, data)
-    #        return f"Your ask of {price} has been lodged." in response.text
-    #
-    #    def bid(self, price: str, card_id: str, season: str) -> bool:
-    #        """Places a bid on a card in a season
-    #
-    #        Args:
-    #            price (str): Amount of bank to bid
-    #            card_id (str): ID of the card
-    #            season (str): Season of the card
-    #
-    #        Returns:
-    #            bool: Whether the bid was successfully lodged or not
-    #        """
-    #        self.logger.info(f"Putting a bid for {price} on {card_id} season {season}")
-    #        url = f"https://www.nationstates.net/page=deck/card={card_id}/season={season}"
-    #
-    #        data = {"auction_bid": price, "auction_submit": bid}
-    #        response = self.request(url, data)
-    #
-    #        return f"Your bid of {price} has been lodged." in response.text
+    def open_pack(self) -> bool:
+        """Opens a card pack.
+
+        Returns:
+            bool: Whether the bid was successfully removed or not
+        """
+        self.logger.info("Opening trading card pack")
+        url = "https://www.nationstates.net/template-overall=none/page=deck"
+        data = {"open_loot_box": "1"}
+        response = self.request(url, data)
+        return "Tap cards to reveal..." in response.text
+
+    def ask(self, price: str, card_id: str, season: str) -> bool:
+        """Puts an ask at price on a card in a season
+
+        Args:
+            price (str): Price to ask
+            card_id (str): ID of the card
+            season (str): Season of the card
+
+        Returns:
+            bool: Whether the ask was successfully lodged or not
+        """
+        self.logger.info(f"Asking for {price} on {card_id} season {season}")
+        url = f"https://www.nationstates.net/page=deck/card={card_id}/season={season}"
+
+        data = {"auction_ask": price, "auction_submit": "ask"}
+        response = self.request(url, data)
+        return f"Your ask of {price} has been lodged." in response.text
+
+    def bid(self, price: str, card_id: str, season: str) -> bool:
+        """Places a bid on a card in a season
+
+        Args:
+            price (str): Amount of bank to bid
+            card_id (str): ID of the card
+            season (str): Season of the card
+
+        Returns:
+            bool: Whether the bid was successfully lodged or not
+        """
+        self.logger.info(f"Putting a bid for {price} on {card_id} season {season}")
+        url = f"https://www.nationstates.net/page=deck/card={card_id}/season={season}"
+
+        data = {"auction_bid": price, "auction_submit": "bid"}
+        response = self.request(url, data)
+
+        return f"Your bid of {price} has been lodged." in response.text
 
     def remove_ask(self, price: str, card_id: str, season: str) -> bool:
         """Removes an ask on card_id in season at price
@@ -935,12 +931,10 @@ class NSSession:
 
     def remove_bid(self, price: str, card_id: str, season: str) -> bool:
         """Removes a big on a card
-
         Args:
             price (str): Price of the bid to remove
             card_id (str): ID of the card
             season (str): Season of the card
-
         Returns:
             bool: Whether the bid was successfully removed or not
         """
@@ -952,6 +946,22 @@ class NSSession:
         response = self.request(url, data)
 
         return f"Removed your bid for {price}" in response.text
+
+    def expand_deck(self, price: str) -> bool:
+        """Upgrades deck capcity
+        Args:
+            price (str): Price of the Upgrade
+        Returns:
+            bool: Whether the upgrade was successfully removed or not
+        """
+
+        self.logger.info(f"Upgrading your deck at a cost of {price}")
+        url = "https://www.nationstates.net/page=deck"
+
+        data = {"embiggen_deck": price}
+        response = self.request(url, data)
+
+        return f"Increased deck capacity from" in response.text
 
 
 if __name__ == "__main__":
