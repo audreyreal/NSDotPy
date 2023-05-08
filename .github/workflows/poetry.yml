@@ -11,7 +11,7 @@ jobs:
     steps:
       # checkout repo
       - name: Checkout
-        uses: actions/checkout@master
+        uses: actions/checkout@v2
         with:
           persist-credentials: false # otherwise, the token used is the GITHUB_TOKEN, instead of your personal token
           fetch-depth: 0 # otherwise, you will failed to push refs to dest repo
@@ -37,8 +37,9 @@ jobs:
         uses: actions-js/push@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: master
       # build and publish to pypi
       - name: Build and publish to pypi
         run: poetry publish --build
         env:
-          POETRY_PYPI_TOKEN: ${{ secrets.POETRY_PYPI_TOKEN_PYPI }}
+          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
