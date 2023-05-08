@@ -39,7 +39,7 @@ def canonicalize(string: str) -> str:
     Returns:
         str: The canonical form of the string
     """
-    return string.lower().strip().replace(" ", "_")
+    return string.lower().strip().replace(' ', '_')
 
 
 class NSSession:
