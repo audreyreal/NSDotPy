@@ -65,7 +65,7 @@ class NSSession:
             link_to_src (str, optional): Link to the source code of your script.
             logger (logging.Logger | None, optional): Logger to use. Will create its own with name "NSDotPy" if none is specified. Defaults to None.
         """
-        self.VERSION = "1.1.4"
+        self.VERSION = "1.2.1"
         # Initialize logger
         if not logger:
             self._init_logger()
@@ -844,8 +844,9 @@ class NSSession:
         """Opens a card pack.
 
         Returns:
-            bool: Whether the bid was successfully removed or not"""
-        self.logger.info(f"Opening trading card pack")
+            bool: Whether the bid was successfully removed or not
+        """
+        self.logger.info("Opening trading card pack")
         url = "https://www.nationstates.net/template-overall=none/page=deck"
         data = {"open_loot_box": "1"}
         response = self.request(url, data)
@@ -855,12 +856,12 @@ class NSSession:
         """Puts an ask at price on a card in a season
 
         Args:
-               price (str): Price to ask
-               card_id (str): ID of the card
-               season (str): Season of the card
+            price (str): Price to ask
+            card_id (str): ID of the card
+            season (str): Season of the card
 
-           Returns:
-               bool: Whether the ask was successfully lodged or not
+        Returns:
+            bool: Whether the ask was successfully lodged or not
         """
         self.logger.info(f"Asking for {price} on {card_id} season {season}")
         url = f"https://www.nationstates.net/page=deck/card={card_id}/season={season}"
@@ -890,10 +891,12 @@ class NSSession:
 
     def remove_ask(self, price: str, card_id: str, season: str) -> bool:
         """Removes an ask on card_id in season at price
+
         Args:
             price (str): Price of the ask to remove
             card_id (str): ID of the card
             season (str): Season of the card
+
         Returns:
             bool: Whether the ask was successfully removed or not
         """
@@ -932,7 +935,7 @@ class NSSession:
         """
 
         self.logger.info(f"Upgrading your deck at a cost of {price}")
-        url = f"https://www.nationstates.net/page=deck"
+        url = "https://www.nationstates.net/page=deck"
 
         data = {"embiggen_deck": price}
         response = self.request(url, data)
