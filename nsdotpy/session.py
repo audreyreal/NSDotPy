@@ -830,7 +830,7 @@ def open_pack(self) -> bool:
 
     Returns:
         bool: Whether the bid was successfully removed or not"""
-    self.logger.info(f"Opening pack {each} of {count}")
+    self.logger.info(f"Opening trading card pack")
     url = "https://www.nationstates.net/template-overall=none/page=deck"
     data = {"open_loot_box": "1"}
     response = self.request(url, data)
