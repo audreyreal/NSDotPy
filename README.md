@@ -21,7 +21,7 @@ if session.login("User Nation", "Password"):  # logs in and checks if login was 
 - Dossier and reports handling
 - More fleshed out API Client
 - Cards support
-- Migrate automatic docs generation, code formatting, and PyPI uploading to GitHub Actions for better CI
+- ~~Migrate automatic docs generation, code formatting, and PyPI uploading to GitHub Actions for better CI~~
 
 ## Docs
 
