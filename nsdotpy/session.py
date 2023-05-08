@@ -923,6 +923,22 @@ class NSSession:
 
         return f"Removed your bid for {price}" in response.text
 
+    def expand_deck(self, price: str) -> bool:
+        """Upgrades deck capcity
+        Args:
+            price (str): Price of the Upgrade
+        Returns:
+            bool: Whether the upgrade was successfully removed or not
+        """
+
+        self.logger.info(f"Upgrading your deck at a cost of {price}")
+        url = f"https://www.nationstates.net/page=deck"
+
+        data = {"embiggen_deck": price}
+        response = self.request(url, data)
+
+        return f"Increased deck capacity from" in response.text
+
 
 if __name__ == "__main__":
     print("this is a module/library, not a script")
