@@ -1,6 +1,6 @@
 # NSDotPy
 
-A Python wrapper around requests for legally interacting with the HTML NationStates site, as well as a barebones API client. Built for legality first and foremost, as well as ease of use.
+A Python wrapper around httpx for legally interacting with the HTML NationStates site, as well as a barebones API client. Built for legality first and foremost, as well as ease of use.
 
 ## Installation
 
