@@ -10,7 +10,7 @@ A Python wrapper around httpx for legally interacting with the HTML NationStates
 
 ```python
 from nsdotpy.session import NSClient
-session = NSClient("NSDotPy Example," "1.0.0", "Script Author's nation", "Script User's nation")
+session = NSClient("NSDotPy Example", "1.0.0", "Script Author's nation", "Script User's nation")
 if session.login("User Nation", "Password"):  # logs in and checks if login was successful
     session.move_to_region("Lily")  # only moves if you successfully logged in
 ```
