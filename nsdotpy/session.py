@@ -66,7 +66,7 @@ class NSSession:
             link_to_src (str, optional): Link to the source code of your script.
             logger (logging.Logger | None, optional): Logger to use. Will create its own with name "NSDotPy" if none is specified. Defaults to None.
         """
-        self.VERSION = "1.2.4"
+        self.VERSION = "1.2.5"
         # Initialize logger
         if not logger:
             self._init_logger()
@@ -79,6 +79,7 @@ class NSSession:
         self._session = httpx.Client(http2=True, timeout=30)  # ns can b slow
         # Set the user agent to the script name, version, author, and user as recommended in the script rules thread:
         # https://forum.nationstates.net/viewtopic.php?p=16394966&sid=be37623536dbc8cee42d8d043945b887#p16394966
+        self._lock: bool = False
         self._set_user_agent(
             script_name, script_version, script_author, script_user, link_to_src
         )
@@ -131,6 +132,7 @@ class NSSession:
             "loggers": {
                 "NSDotPy": {"handlers": ["console"], "level": "INFO"},
                 "httpx": {"handlers": ["console"], "level": "ERROR"},
+                "bs4": {"handlers": ["console"], "level": "ERROR"},
             },
         }
         logging.config.dictConfig(config)
@@ -286,6 +288,14 @@ class NSSession:
             raise ValueError(
                 "You cannot use a tool to interact with telegrams, issues, getting help, or the store. Read up on the script rules: https://forum.nationstates.net/viewtopic.php?p=16394966#p16394966"
             )
+        if self._lock:
+            # if lock is true then we're already in the middle of a
+            # request and we're in danger of breaking the simultaneity rule
+            # so raise an error
+            raise PermissionError(
+                "You're already in the middle of a request. Stop trying to violate simultaneity."
+            )
+        self._lock = True
         if "api.cgi" in canonicalize(url):
             # deal with ratelimiting if its an api request
             response = self.api_request(data, _auth=auth)
@@ -298,6 +308,7 @@ class NSSession:
                 url, data=data, follow_redirects=follow_redirects
             )
         self.current_page = (url, response.text)
+        self._lock = False
         return response
 
     def api_request(self, data: dict, _auth=()) -> httpx.Response:
@@ -678,7 +689,7 @@ class NSSession:
             ValueError: If type is not "flag" or "banner"
 
         Returns:
-            str: _description_
+            str: Empty string if the upload failed, otherwise the ID of the uploaded file
         """
         self.logger.info(f"Uploading {filename} to {self.region}")
         if type not in ["flag", "banner"]:
@@ -698,8 +709,7 @@ class NSSession:
             )
         }
         response = self.request(url, data, files=files)
-
-        return response.json()["id"]
+        return "" if "id" not in response.json() else response.json()["id"]
 
     def set_flag_and_banner(
         self, flag_id: str = "", banner_id: str = "", flag_mode: str = ""
@@ -717,7 +727,6 @@ class NSSession:
         Returns:
             bool: Whether the change was successful or not
         """
-        self.logger.info(f"Setting flag and banner for {self.region}")
         if flag_mode not in ["flag", "logo", ""]:
             raise ValueError("flagmode must be 'flag', 'logo', or ''")
         self.logger.info(f"Setting flag and banner for {self.region}")
@@ -739,7 +748,7 @@ class NSSession:
         """Changes the WFE of the current region.
 
         Args:
-            wfe (str, optional): _description_. Defaults to the oldest WFE the region has, for detags.
+            wfe (str, optional): World Factbook Entry to change to. Defaults to the oldest WFE the region has, for detags.
 
         Returns:
             bool: True if successful, False otherwise
@@ -749,7 +758,7 @@ class NSSession:
             wfe = self._get_detag_wfe()  # haku im sorry for hitting your site so much
         url = "https://www.nationstates.net/template-overall=none/page=region_control/"
         data = {
-            "message": wfe.encode("iso-8859-1", "xmlcharrefreplace"),  # lol.
+            "message": wfe.encode("iso-8859-1", "xmlcharrefreplace").decode(),  # lol.
             "setwfebutton": "1",
         }
         response = self.request(url, data)
@@ -936,10 +945,12 @@ class NSSession:
 
     def remove_bid(self, price: str, card_id: str, season: str) -> bool:
         """Removes a bid on a card
+
         Args:
             price (str): Price of the bid to remove
             card_id (str): ID of the card
             season (str): Season of the card
+
         Returns:
             bool: Whether the bid was successfully removed or not
         """
@@ -953,9 +964,11 @@ class NSSession:
         return f"Removed your bid for {price}" in response.text
 
     def expand_deck(self, price: str) -> bool:
-        """Upgrades deck capcity
+        """Upgrades deck capacity
+
         Args:
             price (str): Price of the Upgrade
+
         Returns:
             bool: Whether the upgrade was successfully removed or not
         """
@@ -970,10 +983,12 @@ class NSSession:
 
     def add_to_collection(self, card_id: str, card_season: str, collection_id: str):
         """Adds a card to collection_id
+
         Args:
             card_id (str): Card ID
             card_season (str): Cards season
             collection_id (str): The ID of the collection you want to add to
+
         Returns:
             bool: Whether the adding was successfully added or not
         """
@@ -994,10 +1009,12 @@ class NSSession:
         self, card_id: str, card_season: str, collection_id: str
     ):
         """Removes a card from collection_id
+
         Args:
             card_id (str): Card ID
             card_season (str): Cards season
             collection_id (str): The ID of the collection you want to remove from
+
         Returns:
             bool: Whether the removal was successfully added or not
         """
@@ -1019,8 +1036,10 @@ class NSSession:
 
     def create_collection(self, name: str):
         """Creates a collection named name
+
         Args:
             name (str): The name of the collection you want to create
+
         Returns:
             bool: Whether the creating was successfully added or not
         """
@@ -1034,8 +1053,10 @@ class NSSession:
 
     def delete_collection(self, name: str):
         """Deletes a collection named name
+
         Args:
             name (str): The name of the collection you want to delete
+
         Returns:
             bool: Whether the deleting was successfully added or not
         """
