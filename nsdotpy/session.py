@@ -27,7 +27,7 @@ from tendo.singleton import SingleInstance  # so it can only be run once at a ti
 from bs4 import BeautifulSoup  # for parsing html and xml
 
 # local imports
-from . import valid_tags  # for valid region tags
+from . import valid  # for valid region tags
 
 
 def canonicalize(string: str) -> str:
@@ -66,7 +66,7 @@ class NSSession:
             link_to_src (str, optional): Link to the source code of your script.
             logger (logging.Logger | None, optional): Logger to use. Will create its own with name "NSDotPy" if none is specified. Defaults to None.
         """
-        self.VERSION = "1.2.5"
+        self.VERSION = "1.2.6"
         # Initialize logger
         if not logger:
             self._init_logger()
@@ -132,12 +132,15 @@ class NSSession:
             "loggers": {
                 "NSDotPy": {"handlers": ["console"], "level": "INFO"},
                 "httpx": {"handlers": ["console"], "level": "ERROR"},
-                "bs4": {"handlers": ["console"], "level": "ERROR"},
             },
         }
         logging.config.dictConfig(config)
 
     def _get_auth_values(self, response: httpx.Response):
+        # make sure it's actually html first
+        if response.headers["Content-Type"].startswith("text/html"):
+            return
+        # parse the html
         soup = BeautifulSoup(response.text, "html.parser")
         # gathering chk and localid so i dont have to worry about authenticating l8r
         if chk := soup.find("input", {"name": "chk"}):
@@ -846,7 +849,7 @@ class NSSession:
         """
         if action not in ["add", "remove"]:
             raise ValueError("action must be 'add' or 'remove'")
-        if canonicalize(tag) not in valid_tags.tags:
+        if canonicalize(tag) not in valid.region_tags:
             raise ValueError(f"{tag} is not a valid tag")
         self.logger.info(f"{action.capitalize()}ing tag {tag} for {self.region}")
         url = "https://www.nationstates.net/template-overall=none/page=region_control/"
