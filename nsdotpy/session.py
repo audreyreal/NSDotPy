@@ -984,9 +984,10 @@ class NSSession:
         response = self.request(url, data)
 
         return "Updated collections." in response.text
-    
-    
-    def remove_from_collection(self, card_id: str, card_season: str, collection_id: str):
+
+    def remove_from_collection(
+        self, card_id: str, card_season: str, collection_id: str
+    ):
         """Removes a card from collection_id
         Args:
             card_id (str): Card ID
@@ -995,7 +996,9 @@ class NSSession:
         Returns:
             bool: Whether the removal was successfully added or not
         """
-        self.logger.info(f"Removing {card_id} of season {card_season} from {collection_id}")
+        self.logger.info(
+            f"Removing {card_id} of season {card_season} from {collection_id}"
+        )
         url = f"https://www.nationstates.net/template-overall=none/page=deck/card={card_id}/season={card_season}"
 
         data = {
@@ -1008,6 +1011,37 @@ class NSSession:
         response = self.request(url, data)
 
         return "Updated collections." in response.text
+
+    def create_collection(self, name: str):
+        """Creates a collection named name
+        Args:
+            name (str): The name of the collection you want to create
+        Returns:
+            bool: Whether the creating was successfully added or not
+        """
+        self.logger.info(f"Creating {name} collection")
+        url = f"https://www.nationstates.net/template-overall=none/page=deck"
+
+        data = {"edit": "1", "collection_name": name, "save_collection": "1"}
+        response = self.request(url, data)
+
+        return "Created collection!" in response.text
+
+    def delete_collection(self, name: str):
+        """Deletes a collection named name
+        Args:
+            name (str): The name of the collection you want to delete
+        Returns:
+            bool: Whether the deleting was successfully added or not
+        """
+        self.logger.info(f"Deleting {name} collection")
+        url = f"https://www.nationstates.net/template-overall=none/page=deck"
+
+        data = {"edit": "1", "collection_name": name, "delete_collection": "1"}
+        response = self.request(url, data)
+
+        return "Created collection!" in response.text
+
 
 if __name__ == "__main__":
     print("this is a module/library, not a script")
