@@ -930,7 +930,7 @@ class NSSession:
         return f"Removed your ask for {price}" in response.text
 
     def remove_bid(self, price: str, card_id: str, season: str) -> bool:
-        """Removes a big on a card
+        """Removes a bid on a card
         Args:
             price (str): Price of the bid to remove
             card_id (str): ID of the card
@@ -961,7 +961,32 @@ class NSSession:
         data = {"embiggen_deck": price}
         response = self.request(url, data)
 
-        return f"Increased deck capacity from" in response.text
+        return "Increased deck capacity from" in response.text
+
+    def add_to_collection(self, card_id: str, card_season: str, collection_id: str):
+        """Adds a card to collection_id
+        Args:
+            card_id (str): Card ID
+            card_season (str): Cards season
+            collection_id (str): The ID of the collection you want to add to
+        Returns:
+            bool: Whether the upgrade was successfully added or not
+        """
+        self.logger.info(f"Adding {card_id} of season {card_season} to {collection_id}")
+        url = "https://www.nationstates.net/page=deck"
+
+        data = {
+            "manage_collections": "1",
+            "modify_card_in_collection": "1",
+            "start": "0",
+            "collectionslisted": collection_id,
+            f"collection_{collection_id}": "1",
+            f"selected_{collection_id}": "on",
+            "save_collection": "1",
+        }
+        response = self.request(url, data)
+
+        return "Updated collections." in response.text
 
 
 if __name__ == "__main__":
