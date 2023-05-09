@@ -66,7 +66,7 @@ class NSSession:
             link_to_src (str, optional): Link to the source code of your script.
             logger (logging.Logger | None, optional): Logger to use. Will create its own with name "NSDotPy" if none is specified. Defaults to None.
         """
-        self.VERSION = "1.2.6"
+        self.VERSION = "1.2.7"
         # Initialize logger
         if not logger:
             self._init_logger()
@@ -138,7 +138,7 @@ class NSSession:
 
     def _get_auth_values(self, response: httpx.Response):
         # make sure it's actually html first
-        if response.headers["Content-Type"].startswith("text/html"):
+        if not response.headers["Content-Type"].startswith("text/html"):
             return
         # parse the html
         soup = BeautifulSoup(response.text, "html.parser")
