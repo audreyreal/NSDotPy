@@ -22,7 +22,7 @@ if session.login("User Nation", "Password"):  # logs in and checks if login was 
 - ~~Region Admin Controls~~
 - Dossier and reports handling
 - More fleshed out API Client
-- Cards support
+- ~~Cards support~~ Shoutouts to 9003
 - ~~Migrate automatic docs generation, code formatting, and PyPI uploading to GitHub Actions for better CI~~
 
 ## Docs

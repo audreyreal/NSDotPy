@@ -66,7 +66,7 @@ class NSSession:
             link_to_src (str, optional): Link to the source code of your script.
             logger (logging.Logger | None, optional): Logger to use. Will create its own with name "NSDotPy" if none is specified. Defaults to None.
         """
-        self.VERSION = "1.2.2"
+        self.VERSION = "1.2.3"
         # Initialize logger
         if not logger:
             self._init_logger()
@@ -1020,7 +1020,7 @@ class NSSession:
             bool: Whether the creating was successfully added or not
         """
         self.logger.info(f"Creating {name} collection")
-        url = f"https://www.nationstates.net/template-overall=none/page=deck"
+        url = "https://www.nationstates.net/template-overall=none/page=deck"
 
         data = {"edit": "1", "collection_name": name, "save_collection": "1"}
         response = self.request(url, data)
@@ -1035,7 +1035,7 @@ class NSSession:
             bool: Whether the deleting was successfully added or not
         """
         self.logger.info(f"Deleting {name} collection")
-        url = f"https://www.nationstates.net/template-overall=none/page=deck"
+        url = "https://www.nationstates.net/template-overall=none/page=deck"
 
         data = {"edit": "1", "collection_name": name, "delete_collection": "1"}
         response = self.request(url, data)
