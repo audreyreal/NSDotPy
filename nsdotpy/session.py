@@ -66,7 +66,7 @@ class NSSession:
             link_to_src (str, optional): Link to the source code of your script.
             logger (logging.Logger | None, optional): Logger to use. Will create its own with name "NSDotPy" if none is specified. Defaults to None.
         """
-        self.VERSION = "1.2.3"
+        self.VERSION = "1.2.4"
         # Initialize logger
         if not logger:
             self._init_logger()
@@ -91,6 +91,7 @@ class NSSession:
         self.pin: str = ""
         self.nation: str = ""
         self.region: str = ""
+        self.current_page: tuple[str, str] = ("", "")
         self.keybind = keybind
         self.logger.info(f"Initialized. Keybind to continue is {self.keybind}.")
 
@@ -287,13 +288,17 @@ class NSSession:
             )
         if "api.cgi" in canonicalize(url):
             # deal with ratelimiting if its an api request
-            return self.api_request(data, _auth=auth)
+            response = self.api_request(data, _auth=auth)
         elif "nationstates" in canonicalize(url):
             # do all the things that need to be done for html requests
-            return self._html_request(url, data, files, follow_redirects, auth=auth)
+            response = self._html_request(url, data, files, follow_redirects, auth=auth)
         else:
             # if its not nationstates then just pass the request through
-            return self._session.post(url, data=data, follow_redirects=follow_redirects)
+            response = self._session.post(
+                url, data=data, follow_redirects=follow_redirects
+            )
+        self.current_page = (url, response.text)
+        return response
 
     def api_request(self, data: dict, _auth=()) -> httpx.Response:
         """Sends a request to the nationstates api with the given data.
@@ -785,7 +790,7 @@ class NSSession:
         response = self.request(url, data)
         return " has been scheduled for demolition." in response.text
 
-    def abort_embasy(self, target: str) -> bool:
+    def abort_embassy(self, target: str) -> bool:
         """Aborts an embassy with a region.
 
         Args:
