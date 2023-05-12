@@ -66,7 +66,7 @@ class NSSession:
             link_to_src (str, optional): Link to the source code of your script.
             logger (logging.Logger | None, optional): Logger to use. Will create its own with name "NSDotPy" if none is specified. Defaults to None.
         """
-        self.VERSION = "1.2.7"
+        self.VERSION = "1.2.8"
         # Initialize logger
         if not logger:
             self._init_logger()
@@ -1070,6 +1070,25 @@ class NSSession:
         response = self.request(url, data)
 
         return "Created collection!" in response.text
+
+    def can_nation_be_founded(self, name: str):
+        """Checks if a nation can be founded
+
+        Args:
+            name (str): The name of the nation you want to check
+
+        Returns:
+            bool: Whether the nation can be founded or not
+        """
+        self.logger.info(f"Checking {name} in boneyard")
+        url = "https://www.nationstates.net/template-overall=none/page=boneyard"
+
+        data = {"nation": name, "submit": "1"}
+        response = self.request(url, data)
+
+        return (
+            "Available! This name may be used to found a new nation." in response.text
+        )
 
 
 if __name__ == "__main__":
