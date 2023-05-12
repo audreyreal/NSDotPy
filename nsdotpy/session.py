@@ -66,7 +66,7 @@ class NSSession:
             link_to_src (str, optional): Link to the source code of your script.
             logger (logging.Logger | None, optional): Logger to use. Will create its own with name "NSDotPy" if none is specified. Defaults to None.
         """
-        self.VERSION = "1.2.7"
+        self.VERSION = "1.2.8"
         # Initialize logger
         if not logger:
             self._init_logger()
@@ -1076,8 +1076,9 @@ class NSSession:
 
         Args:
             name (str): The name of the nation you want to check
+
         Returns:
-            bool: Whether the naiton can be founded or not
+            bool: Whether the nation can be founded or not
         """
         self.logger.info(f"Checking {name} in boneyard")
         url = "https://www.nationstates.net/template-overall=none/page=boneyard"
