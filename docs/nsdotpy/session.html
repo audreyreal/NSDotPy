@@ -134,6 +134,9 @@
                         <li>
                                 <a class="function" href="#NSSession.delete_collection">delete_collection</a>
                         </li>
+                        <li>
+                                <a class="function" href="#NSSession.can_nation_be_founded">can_nation_be_founded</a>
+                        </li>
                 </ul>
 
             </li>
@@ -226,7 +229,7 @@ nsdotpy<wbr>.session    </h1>
 </span><span id="L-66"><a href="#L-66"><span class="linenos">  66</span></a><span class="sd">            link_to_src (str, optional): Link to the source code of your script.</span>
 </span><span id="L-67"><a href="#L-67"><span class="linenos">  67</span></a><span class="sd">            logger (logging.Logger | None, optional): Logger to use. Will create its own with name &quot;NSDotPy&quot; if none is specified. Defaults to None.</span>
 </span><span id="L-68"><a href="#L-68"><span class="linenos">  68</span></a><span class="sd">        &quot;&quot;&quot;</span>
-</span><span id="L-69"><a href="#L-69"><span class="linenos">  69</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">VERSION</span> <span class="o">=</span> <span class="s2">&quot;1.2.7&quot;</span>
+</span><span id="L-69"><a href="#L-69"><span class="linenos">  69</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">VERSION</span> <span class="o">=</span> <span class="s2">&quot;1.2.8&quot;</span>
 </span><span id="L-70"><a href="#L-70"><span class="linenos">  70</span></a>        <span class="c1"># Initialize logger</span>
 </span><span id="L-71"><a href="#L-71"><span class="linenos">  71</span></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">logger</span><span class="p">:</span>
 </span><span id="L-72"><a href="#L-72"><span class="linenos">  72</span></a>            <span class="bp">self</span><span class="o">.</span><span class="n">_init_logger</span><span class="p">()</span>
@@ -1231,9 +1234,28 @@ nsdotpy<wbr>.session    </h1>
 </span><span id="L-1071"><a href="#L-1071"><span class="linenos">1071</span></a>
 </span><span id="L-1072"><a href="#L-1072"><span class="linenos">1072</span></a>        <span class="k">return</span> <span class="s2">&quot;Created collection!&quot;</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">text</span>
 </span><span id="L-1073"><a href="#L-1073"><span class="linenos">1073</span></a>
-</span><span id="L-1074"><a href="#L-1074"><span class="linenos">1074</span></a>
-</span><span id="L-1075"><a href="#L-1075"><span class="linenos">1075</span></a><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
-</span><span id="L-1076"><a href="#L-1076"><span class="linenos">1076</span></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;this is a module/library, not a script&quot;</span><span class="p">)</span>
+</span><span id="L-1074"><a href="#L-1074"><span class="linenos">1074</span></a>    <span class="k">def</span> <span class="nf">can_nation_be_founded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+</span><span id="L-1075"><a href="#L-1075"><span class="linenos">1075</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Checks if a nation can be founded</span>
+</span><span id="L-1076"><a href="#L-1076"><span class="linenos">1076</span></a>
+</span><span id="L-1077"><a href="#L-1077"><span class="linenos">1077</span></a><span class="sd">        Args:</span>
+</span><span id="L-1078"><a href="#L-1078"><span class="linenos">1078</span></a><span class="sd">            name (str): The name of the nation you want to check</span>
+</span><span id="L-1079"><a href="#L-1079"><span class="linenos">1079</span></a>
+</span><span id="L-1080"><a href="#L-1080"><span class="linenos">1080</span></a><span class="sd">        Returns:</span>
+</span><span id="L-1081"><a href="#L-1081"><span class="linenos">1081</span></a><span class="sd">            bool: Whether the nation can be founded or not</span>
+</span><span id="L-1082"><a href="#L-1082"><span class="linenos">1082</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="L-1083"><a href="#L-1083"><span class="linenos">1083</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Checking </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> in boneyard&quot;</span><span class="p">)</span>
+</span><span id="L-1084"><a href="#L-1084"><span class="linenos">1084</span></a>        <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;https://www.nationstates.net/template-overall=none/page=boneyard&quot;</span>
+</span><span id="L-1085"><a href="#L-1085"><span class="linenos">1085</span></a>
+</span><span id="L-1086"><a href="#L-1086"><span class="linenos">1086</span></a>        <span class="n">data</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;nation&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span> <span class="s2">&quot;submit&quot;</span><span class="p">:</span> <span class="s2">&quot;1&quot;</span><span class="p">}</span>
+</span><span id="L-1087"><a href="#L-1087"><span class="linenos">1087</span></a>        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+</span><span id="L-1088"><a href="#L-1088"><span class="linenos">1088</span></a>
+</span><span id="L-1089"><a href="#L-1089"><span class="linenos">1089</span></a>        <span class="k">return</span> <span class="p">(</span>
+</span><span id="L-1090"><a href="#L-1090"><span class="linenos">1090</span></a>            <span class="s2">&quot;Available! This name may be used to found a new nation.&quot;</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">text</span>
+</span><span id="L-1091"><a href="#L-1091"><span class="linenos">1091</span></a>        <span class="p">)</span>
+</span><span id="L-1092"><a href="#L-1092"><span class="linenos">1092</span></a>
+</span><span id="L-1093"><a href="#L-1093"><span class="linenos">1093</span></a>
+</span><span id="L-1094"><a href="#L-1094"><span class="linenos">1094</span></a><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+</span><span id="L-1095"><a href="#L-1095"><span class="linenos">1095</span></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;this is a module/library, not a script&quot;</span><span class="p">)</span>
 </span></pre></div>
 
 
@@ -1314,7 +1336,7 @@ nsdotpy<wbr>.session    </h1>
 </span><span id="NSSession-67"><a href="#NSSession-67"><span class="linenos">  67</span></a><span class="sd">            link_to_src (str, optional): Link to the source code of your script.</span>
 </span><span id="NSSession-68"><a href="#NSSession-68"><span class="linenos">  68</span></a><span class="sd">            logger (logging.Logger | None, optional): Logger to use. Will create its own with name &quot;NSDotPy&quot; if none is specified. Defaults to None.</span>
 </span><span id="NSSession-69"><a href="#NSSession-69"><span class="linenos">  69</span></a><span class="sd">        &quot;&quot;&quot;</span>
-</span><span id="NSSession-70"><a href="#NSSession-70"><span class="linenos">  70</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">VERSION</span> <span class="o">=</span> <span class="s2">&quot;1.2.7&quot;</span>
+</span><span id="NSSession-70"><a href="#NSSession-70"><span class="linenos">  70</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">VERSION</span> <span class="o">=</span> <span class="s2">&quot;1.2.8&quot;</span>
 </span><span id="NSSession-71"><a href="#NSSession-71"><span class="linenos">  71</span></a>        <span class="c1"># Initialize logger</span>
 </span><span id="NSSession-72"><a href="#NSSession-72"><span class="linenos">  72</span></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">logger</span><span class="p">:</span>
 </span><span id="NSSession-73"><a href="#NSSession-73"><span class="linenos">  73</span></a>            <span class="bp">self</span><span class="o">.</span><span class="n">_init_logger</span><span class="p">()</span>
@@ -2318,6 +2340,25 @@ nsdotpy<wbr>.session    </h1>
 </span><span id="NSSession-1071"><a href="#NSSession-1071"><span class="linenos">1071</span></a>        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
 </span><span id="NSSession-1072"><a href="#NSSession-1072"><span class="linenos">1072</span></a>
 </span><span id="NSSession-1073"><a href="#NSSession-1073"><span class="linenos">1073</span></a>        <span class="k">return</span> <span class="s2">&quot;Created collection!&quot;</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">text</span>
+</span><span id="NSSession-1074"><a href="#NSSession-1074"><span class="linenos">1074</span></a>
+</span><span id="NSSession-1075"><a href="#NSSession-1075"><span class="linenos">1075</span></a>    <span class="k">def</span> <span class="nf">can_nation_be_founded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+</span><span id="NSSession-1076"><a href="#NSSession-1076"><span class="linenos">1076</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Checks if a nation can be founded</span>
+</span><span id="NSSession-1077"><a href="#NSSession-1077"><span class="linenos">1077</span></a>
+</span><span id="NSSession-1078"><a href="#NSSession-1078"><span class="linenos">1078</span></a><span class="sd">        Args:</span>
+</span><span id="NSSession-1079"><a href="#NSSession-1079"><span class="linenos">1079</span></a><span class="sd">            name (str): The name of the nation you want to check</span>
+</span><span id="NSSession-1080"><a href="#NSSession-1080"><span class="linenos">1080</span></a>
+</span><span id="NSSession-1081"><a href="#NSSession-1081"><span class="linenos">1081</span></a><span class="sd">        Returns:</span>
+</span><span id="NSSession-1082"><a href="#NSSession-1082"><span class="linenos">1082</span></a><span class="sd">            bool: Whether the nation can be founded or not</span>
+</span><span id="NSSession-1083"><a href="#NSSession-1083"><span class="linenos">1083</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="NSSession-1084"><a href="#NSSession-1084"><span class="linenos">1084</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Checking </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> in boneyard&quot;</span><span class="p">)</span>
+</span><span id="NSSession-1085"><a href="#NSSession-1085"><span class="linenos">1085</span></a>        <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;https://www.nationstates.net/template-overall=none/page=boneyard&quot;</span>
+</span><span id="NSSession-1086"><a href="#NSSession-1086"><span class="linenos">1086</span></a>
+</span><span id="NSSession-1087"><a href="#NSSession-1087"><span class="linenos">1087</span></a>        <span class="n">data</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;nation&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span> <span class="s2">&quot;submit&quot;</span><span class="p">:</span> <span class="s2">&quot;1&quot;</span><span class="p">}</span>
+</span><span id="NSSession-1088"><a href="#NSSession-1088"><span class="linenos">1088</span></a>        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+</span><span id="NSSession-1089"><a href="#NSSession-1089"><span class="linenos">1089</span></a>
+</span><span id="NSSession-1090"><a href="#NSSession-1090"><span class="linenos">1090</span></a>        <span class="k">return</span> <span class="p">(</span>
+</span><span id="NSSession-1091"><a href="#NSSession-1091"><span class="linenos">1091</span></a>            <span class="s2">&quot;Available! This name may be used to found a new nation.&quot;</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">text</span>
+</span><span id="NSSession-1092"><a href="#NSSession-1092"><span class="linenos">1092</span></a>        <span class="p">)</span>
 </span></pre></div>
 
 
@@ -2356,7 +2397,7 @@ nsdotpy<wbr>.session    </h1>
 </span><span id="NSSession.__init__-67"><a href="#NSSession.__init__-67"><span class="linenos">67</span></a><span class="sd">            link_to_src (str, optional): Link to the source code of your script.</span>
 </span><span id="NSSession.__init__-68"><a href="#NSSession.__init__-68"><span class="linenos">68</span></a><span class="sd">            logger (logging.Logger | None, optional): Logger to use. Will create its own with name &quot;NSDotPy&quot; if none is specified. Defaults to None.</span>
 </span><span id="NSSession.__init__-69"><a href="#NSSession.__init__-69"><span class="linenos">69</span></a><span class="sd">        &quot;&quot;&quot;</span>
-</span><span id="NSSession.__init__-70"><a href="#NSSession.__init__-70"><span class="linenos">70</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">VERSION</span> <span class="o">=</span> <span class="s2">&quot;1.2.7&quot;</span>
+</span><span id="NSSession.__init__-70"><a href="#NSSession.__init__-70"><span class="linenos">70</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">VERSION</span> <span class="o">=</span> <span class="s2">&quot;1.2.8&quot;</span>
 </span><span id="NSSession.__init__-71"><a href="#NSSession.__init__-71"><span class="linenos">71</span></a>        <span class="c1"># Initialize logger</span>
 </span><span id="NSSession.__init__-72"><a href="#NSSession.__init__-72"><span class="linenos">72</span></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">logger</span><span class="p">:</span>
 </span><span id="NSSession.__init__-73"><a href="#NSSession.__init__-73"><span class="linenos">73</span></a>            <span class="bp">self</span><span class="o">.</span><span class="n">_init_logger</span><span class="p">()</span>
@@ -4284,6 +4325,55 @@ Variables must be explicitly named in the call to the function, e.g. "session.ch
 
 <blockquote>
   <p>bool: Whether the deleting was successfully added or not</p>
+</blockquote>
+</div>
+
+
+                            </div>
+                            <div id="NSSession.can_nation_be_founded" class="classattr">
+                                        <input id="NSSession.can_nation_be_founded-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
+<div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">can_nation_be_founded</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">name</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">):</span></span>
+
+                <label class="view-source-button" for="NSSession.can_nation_be_founded-view-source"><span>View Source</span></label>
+
+    </div>
+    <a class="headerlink" href="#NSSession.can_nation_be_founded"></a>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="NSSession.can_nation_be_founded-1075"><a href="#NSSession.can_nation_be_founded-1075"><span class="linenos">1075</span></a>    <span class="k">def</span> <span class="nf">can_nation_be_founded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+</span><span id="NSSession.can_nation_be_founded-1076"><a href="#NSSession.can_nation_be_founded-1076"><span class="linenos">1076</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Checks if a nation can be founded</span>
+</span><span id="NSSession.can_nation_be_founded-1077"><a href="#NSSession.can_nation_be_founded-1077"><span class="linenos">1077</span></a>
+</span><span id="NSSession.can_nation_be_founded-1078"><a href="#NSSession.can_nation_be_founded-1078"><span class="linenos">1078</span></a><span class="sd">        Args:</span>
+</span><span id="NSSession.can_nation_be_founded-1079"><a href="#NSSession.can_nation_be_founded-1079"><span class="linenos">1079</span></a><span class="sd">            name (str): The name of the nation you want to check</span>
+</span><span id="NSSession.can_nation_be_founded-1080"><a href="#NSSession.can_nation_be_founded-1080"><span class="linenos">1080</span></a>
+</span><span id="NSSession.can_nation_be_founded-1081"><a href="#NSSession.can_nation_be_founded-1081"><span class="linenos">1081</span></a><span class="sd">        Returns:</span>
+</span><span id="NSSession.can_nation_be_founded-1082"><a href="#NSSession.can_nation_be_founded-1082"><span class="linenos">1082</span></a><span class="sd">            bool: Whether the nation can be founded or not</span>
+</span><span id="NSSession.can_nation_be_founded-1083"><a href="#NSSession.can_nation_be_founded-1083"><span class="linenos">1083</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="NSSession.can_nation_be_founded-1084"><a href="#NSSession.can_nation_be_founded-1084"><span class="linenos">1084</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Checking </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> in boneyard&quot;</span><span class="p">)</span>
+</span><span id="NSSession.can_nation_be_founded-1085"><a href="#NSSession.can_nation_be_founded-1085"><span class="linenos">1085</span></a>        <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;https://www.nationstates.net/template-overall=none/page=boneyard&quot;</span>
+</span><span id="NSSession.can_nation_be_founded-1086"><a href="#NSSession.can_nation_be_founded-1086"><span class="linenos">1086</span></a>
+</span><span id="NSSession.can_nation_be_founded-1087"><a href="#NSSession.can_nation_be_founded-1087"><span class="linenos">1087</span></a>        <span class="n">data</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;nation&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span> <span class="s2">&quot;submit&quot;</span><span class="p">:</span> <span class="s2">&quot;1&quot;</span><span class="p">}</span>
+</span><span id="NSSession.can_nation_be_founded-1088"><a href="#NSSession.can_nation_be_founded-1088"><span class="linenos">1088</span></a>        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+</span><span id="NSSession.can_nation_be_founded-1089"><a href="#NSSession.can_nation_be_founded-1089"><span class="linenos">1089</span></a>
+</span><span id="NSSession.can_nation_be_founded-1090"><a href="#NSSession.can_nation_be_founded-1090"><span class="linenos">1090</span></a>        <span class="k">return</span> <span class="p">(</span>
+</span><span id="NSSession.can_nation_be_founded-1091"><a href="#NSSession.can_nation_be_founded-1091"><span class="linenos">1091</span></a>            <span class="s2">&quot;Available! This name may be used to found a new nation.&quot;</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">text</span>
+</span><span id="NSSession.can_nation_be_founded-1092"><a href="#NSSession.can_nation_be_founded-1092"><span class="linenos">1092</span></a>        <span class="p">)</span>
+</span></pre></div>
+
+
+            <div class="docstring"><p>Checks if a nation can be founded</p>
+
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>name (str):</strong>  The name of the nation you want to check</li>
+</ul>
+
+<h6 id="returns">Returns:</h6>
+
+<blockquote>
+  <p>bool: Whether the nation can be founded or not</p>
 </blockquote>
 </div>
 
