@@ -27,7 +27,7 @@ if session.login("User Nation", "Password"):  # logs in and checks if login was 
 
 ## Docs
 
-https://sw33ze.github.io/NSDotPy/nsdotpy/session.html#NSSession
+https://audreyreal.github.io/NSDotPy/nsdotpy/session.html#NSSession
 
 ## Generating Docs
 
