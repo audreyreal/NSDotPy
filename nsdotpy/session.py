@@ -24,7 +24,7 @@ import mimetypes  # for flag and banner uploading
 import keyboard  # for the required user input
 import httpx  # for http stuff
 from tendo.singleton import SingleInstance  # so it can only be run once at a time
-from bs4 import BeautifulSoup  # for parsing html and xml
+from bs4 import BeautifulSoup, Tag  # for parsing html and xml
 
 # local imports
 from . import valid  # for valid region tags
@@ -66,7 +66,7 @@ class NSSession:
             link_to_src (str, optional): Link to the source code of your script.
             logger (logging.Logger | None, optional): Logger to use. Will create its own with name "NSDotPy" if none is specified. Defaults to None.
         """
-        self.VERSION = "1.2.8"
+        self.VERSION = "1.3.0"
         # Initialize logger
         if not logger:
             self._init_logger()
@@ -84,8 +84,13 @@ class NSSession:
             script_name, script_version, script_author, script_user, link_to_src
         )
         # If a link to the source code is provided, add it to the user agent
-        # Initialize nationstates specific stuff
         self._ns_server = "1"
+        # Make sure the nations in the user agent actually exist
+        if not self._validate_nations([script_author, script_user]):
+            raise ValueError(
+                "One of, or both, of the nations in the user agent do not exist. Make sure you're only including the nation name in the constructor, e.g. 'Thorn1000' instead of 'Devved by Thorn1000'"
+            )
+        # Initialize nationstates specific stuff
         self._auth_region = "rwby"
         self.chk: str = ""
         self.localid: str = ""
@@ -111,6 +116,26 @@ class NSSession:
             self.user_agent = f"{self.user_agent}; src:{link_to_src}"
         self.user_agent = f"{self.user_agent}; Written with NSDotPy/{self.VERSION} (by:Sweeze; src:github.com/sw33ze/NSDotPy)"
         self._session.headers.update({"User-Agent": self.user_agent})
+
+    def _validate_nations(self, nations: list[str]) -> bool:
+        """Checks if a list of nations exist using the NationStates API.
+
+        Args:
+            nations (list[str]): List of nations to check
+
+        Returns:
+            bool: True if all nations in the list exist, False otherwise.
+        """
+        url = "https://www.nationstates.net/cgi-bin/api.cgi"
+        data = {"q": "nations"}
+        response = self.request(url, data)
+        soup = BeautifulSoup(response.text, "lxml-xml")
+        # the list of nations is inside the <NATIONS> tag
+        world_nations_tag: Tag = soup.find("NATIONS")  # type: ignore
+        # get the list of nations from the <NATIONS> tag
+        world_nations: list[str] = world_nations_tag.text.split(",")
+        # check if all nations in the list exist in the world nations
+        return all(canonicalize(nation) in world_nations for nation in nations)
 
     def _init_logger(self):
         self.logger = logging.getLogger("NSDotPy")
@@ -141,7 +166,7 @@ class NSSession:
         if not response.headers["Content-Type"].startswith("text/html"):
             return
         # parse the html
-        soup = BeautifulSoup(response.text, "html.parser")
+        soup = BeautifulSoup(response.text, "lxml")
         # gathering chk and localid so i dont have to worry about authenticating l8r
         if chk := soup.find("input", {"name": "chk"}):
             self.chk = chk["value"].strip()  # type: ignore
@@ -156,6 +181,7 @@ class NSSession:
             )
 
     def _refresh_auth_values(self):
+        self.logger.info("Refreshing authentication values...")
         response = self.request(
             f"https://www.nationstates.net/page=display_region/region={self._auth_region}",
             data={"theme": "century"},
@@ -186,7 +212,7 @@ class NSSession:
         response = self.request(
             f"https://greywardens.xyz/tools/wfe_index/region={self.region}",
         )
-        soup = BeautifulSoup(response.text, "html.parser")
+        soup = BeautifulSoup(response.text, "lxml")
         # the safest bet for a detag wfe is the first wfe of the region
         return soup.find_all("pre")[-1].text
 
@@ -369,7 +395,7 @@ class NSSession:
 
         response = self.request(url, data)
 
-        soup = BeautifulSoup(response.text, "html.parser")
+        soup = BeautifulSoup(response.text, "lxml")
         # checks if the body tag has your nation name in it; if it does, you're logged in
         if not soup.find("body", {"data-nname": canonicalize(nation)}):
             return False
@@ -430,7 +456,7 @@ class NSSession:
 
         Args:
             email (str, optional): New email for WA apps.
-            pretitle (str, optional): New pretitle of the nation. Max length of 28.
+            pretitle (str, optional): New pretitle of the nation. Max length of 28. Nation must have minimum population of 250 million.
             slogan (str, optional): New Slogan/Motto of the nation. Max length of 55.
             currency (str, optional): New currency of the nation. Max length of 40.
             animal (str, optional): New national animal of the nation. Max length of 40.
@@ -605,6 +631,30 @@ class NSSession:
         response = self.request(url, data)
 
         return "Dossier cleared of nations." in response.text
+
+    def add_to_dossier(self, nations: list[str]) -> bool:
+        """Adds nations to the logged in nation's dossier.
+
+        Args:
+            nations (list[str]): List of nations to add
+
+        Returns:
+            bool: Whether it was successful or not
+        """
+
+        self.logger.info(f"Adding {nations} to dossier on {self.nation}")
+        url = "https://www.nationstates.net/template-overall=none/page=dossier"
+        data = {
+            "currentnation": canonicalize(self.nation),
+            "action_append": "Upload Nation Dossier File",
+        }
+        files = {
+            "file": ("dossier.txt", "\n".join(nations), "text/plain"),
+        }
+        response = self.request(url, data, files=files)
+
+        self._refresh_auth_values()
+        return "appended=1" in response.headers["location"]
 
     def wa_vote(self, council: str, vote: str) -> bool:
         """Votes on the current WA resolution.
@@ -859,6 +909,36 @@ class NSSession:
         }
         response = self.request(url, data)
         return "Region Tags updated!" in response.text
+
+    def eject(self, nation: str) -> bool:
+        """Ejects a nation from the current region.
+
+        Args:
+            nation (str): The nation to eject.
+
+        Returns:
+            bool: Whether the nation was successfully ejected or not
+        """
+        self.logger.info(f"Ejecting {nation} from {self.region}")
+        url = "https://www.nationstates.net/template-overall=none/page=region_control/"
+        data = {"nation_name": nation, "eject": "1"}
+        response = self.request(url, data)
+        return "has been ejected from " in response.text
+
+    def banject(self, nation: str) -> bool:
+        """Bans a nation from the current region.
+
+        Args:
+            nation (str): The nation to banject.
+
+        Returns:
+            bool: Whether the nation was successfully banjected or not
+        """
+        self.logger.info(f"Banjecting {nation} from {self.region}")
+        url = "https://www.nationstates.net/template-overall=none/page=region_control/"
+        data = {"nation_name": nation, "ban": "1"}
+        response = self.request(url, data)
+        return "has been ejected and banned from " in response.text
 
     # end methods for region control
 
