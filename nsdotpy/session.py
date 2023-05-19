@@ -66,7 +66,7 @@ class NSSession:
             link_to_src (str, optional): Link to the source code of your script.
             logger (logging.Logger | None, optional): Logger to use. Will create its own with name "NSDotPy" if none is specified. Defaults to None.
         """
-        self.VERSION = "1.3.0"
+        self.VERSION = "1.3.1"
         # Initialize logger
         if not logger:
             self._init_logger()
@@ -643,7 +643,7 @@ class NSSession:
         """
 
         self.logger.info(f"Adding {nations} to dossier on {self.nation}")
-        url = "https://www.nationstates.net/template-overall=none/page=dossier"
+        url = "https://www.nationstates.net/dossier.cgi"
         data = {
             "currentnation": canonicalize(self.nation),
             "action_append": "Upload Nation Dossier File",
@@ -654,7 +654,7 @@ class NSSession:
         response = self.request(url, data, files=files)
 
         self._refresh_auth_values()
-        return "appended=1" in response.headers["location"]
+        return "appended=" in response.headers["location"]
 
     def wa_vote(self, council: str, vote: str) -> bool:
         """Votes on the current WA resolution.
