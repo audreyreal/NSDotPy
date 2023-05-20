@@ -66,7 +66,7 @@ class NSSession:
             link_to_src (str, optional): Link to the source code of your script.
             logger (logging.Logger | None, optional): Logger to use. Will create its own with name "NSDotPy" if none is specified. Defaults to None.
         """
-        self.VERSION = "1.3.1"
+        self.VERSION = "1.3.2"
         # Initialize logger
         if not logger:
             self._init_logger()
@@ -365,9 +365,11 @@ class NSSession:
             self.logger.warning(f"Rate limited. Waiting {waiting_time} seconds.")
             time.sleep(int(waiting_time))
         # slow down requests so we dont hit the rate limit in the first place
-        requests_left = int(head["X-RateLimit-Remaining"])
-        seconds_until_reset = int(head["X-RateLimit-Reset"])
-        time.sleep(seconds_until_reset / requests_left)
+        requests_left = int(head["RateLimit-Remaining"])
+        seconds_until_reset = int(head["RateLimit-Reset"])
+        # only slow down if we're close to the limit to avoid slowing down one off or infrequent requests
+        if requests_left < 10:
+            time.sleep(seconds_until_reset / requests_left)
         # end rate limiting section
         return response
 
