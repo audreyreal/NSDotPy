@@ -66,7 +66,7 @@ class NSSession:
             link_to_src (str, optional): Link to the source code of your script.
             logger (logging.Logger | None, optional): Logger to use. Will create its own with name "NSDotPy" if none is specified. Defaults to None.
         """
-        self.VERSION = "1.3.3"
+        self.VERSION = "1.3.4"
         # Initialize logger
         if not logger:
             self._init_logger()
@@ -85,11 +85,6 @@ class NSSession:
         )
         # If a link to the source code is provided, add it to the user agent
         self._ns_server = "1"
-        # Make sure the nations in the user agent actually exist
-        if not self._validate_nations([script_author, script_user]):
-            raise ValueError(
-                "One of, or both, of the nations in the user agent do not exist. Make sure you're only including the nation name in the constructor, e.g. 'Thorn1000' instead of 'Devved by Thorn1000'"
-            )
         # Initialize nationstates specific stuff
         self._auth_region = "rwby"
         self.chk: str = ""
@@ -100,6 +95,11 @@ class NSSession:
         self.api_pin: str = ""
         self.current_page: tuple[str, str] = ("", "")
         self.keybind = keybind
+        # Make sure the nations in the user agent actually exist
+        if not self._validate_nations([script_author, script_user]):
+            raise ValueError(
+                "One of, or both, of the nations in the user agent do not exist. Make sure you're only including the nation name in the constructor, e.g. 'Thorn1000' instead of 'Devved by Thorn1000'"
+            )
         self.logger.info(f"Initialized. Keybind to continue is {self.keybind}.")
 
     def _set_user_agent(
