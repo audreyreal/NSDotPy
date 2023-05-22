@@ -66,7 +66,7 @@ class NSSession:
             link_to_src (str, optional): Link to the source code of your script.
             logger (logging.Logger | None, optional): Logger to use. Will create its own with name "NSDotPy" if none is specified. Defaults to None.
         """
-        self.VERSION = "1.3.2"
+        self.VERSION = "1.3.3"
         # Initialize logger
         if not logger:
             self._init_logger()
@@ -97,6 +97,7 @@ class NSSession:
         self.pin: str = ""
         self.nation: str = ""
         self.region: str = ""
+        self.api_pin: str = ""
         self.current_page: tuple[str, str] = ("", "")
         self.keybind = keybind
         self.logger.info(f"Initialized. Keybind to continue is {self.keybind}.")
@@ -340,11 +341,13 @@ class NSSession:
         self._lock = False
         return response
 
-    def api_request(self, data: dict, _auth=()) -> httpx.Response:
+    def api_request(self, data: dict, password: str = "", _auth=()) -> httpx.Response:
         """Sends a request to the nationstates api with the given data.
 
         Args:
             data (dict): Payload to send with the request, e.g. {"nation": "testlandia", "q": "region"}
+            password (str, optional): The password to use for authenticating private api requests. Defaults to "".
+            _auth (tuple, optional): The username and password to use for authentication to an alternative nationstates server. Defaults to ().
 
         Returns:
             httpx.Response: The response from the server
@@ -357,10 +360,16 @@ class NSSession:
             if _auth
             else "https://www.nationstates.net/cgi-bin/api.cgi"
         )
+        if password:
+            self._session.headers["X-Password"] = password
+        if self.api_pin:
+            self._session.headers["X-Pin"] = self.api_pin
         # rate limiting section
         response = self._session.post(url, data=data, auth=_auth)
         # if the server tells us to wait, wait
         head = response.headers
+        if "X-Pin" in head:
+            self.api_pin = head["X-Pin"]
         if waiting_time := head.get("Retry-After"):
             self.logger.warning(f"Rate limited. Waiting {waiting_time} seconds.")
             time.sleep(int(waiting_time))
@@ -733,6 +742,44 @@ class NSSession:
 
     # methods for region control
 
+    def create_region(
+        self,
+        region_name: str,
+        wfe: str,
+        *,
+        password: str = "",
+        frontier: bool = False,
+        executive_delegacy: bool = False,
+    ) -> bool:
+        """Creates a new region.
+
+        Args:
+            region_name (str): Name of the region
+            wfe (str): WFE of the region
+            password (str, optional): Password to the region. Defaults to "".
+            frontier (bool, optional): Whether or not the region is a frontier. Defaults to False.
+            executive_delegacy (bool, optional): Whether or not the region has an executive WA delegacy. Defaults to False. Ignored if frontier is True.
+
+        Returns:
+            bool: Whether the region was successfully created or not
+        """
+        self.logger.info(f"Creating new region {region_name}")
+        url = "https://www.nationstates.net/template-overall=none/page=create_region"
+        data = {
+            "page": "create_region",
+            "region_name": region_name,
+            "desc": wfe,
+            "create_region": "1",
+        }
+        if password:
+            data |= {"pw": "1", "rpassword": password}
+        if frontier:
+            data |= {"is_frontier": "1"}
+        elif executive_delegacy:
+            data |= {"delegate_control": "1"}
+        response = self.request(url, data)
+        return "Success! You have founded " in response.text
+
     def upload_to_region(self, type: str, filename: str) -> str:
         """Uploads a file to the current region.
 
@@ -813,7 +860,9 @@ class NSSession:
             wfe = self._get_detag_wfe()  # haku im sorry for hitting your site so much
         url = "https://www.nationstates.net/template-overall=none/page=region_control/"
         data = {
-            "message": wfe.encode("iso-8859-1", "xmlcharrefreplace").decode(),  # lol.
+            "message": wfe.encode("iso-8859-1", "xmlcharrefreplace")
+            .decode()
+            .strip(),  # lol.
             "setwfebutton": "1",
         }
         response = self.request(url, data)
