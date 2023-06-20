@@ -15,6 +15,14 @@ session = NSSession("NSDotPy Example", "1.0.0", "Script Author's nation", "Scrip
 
 if session.login("User Nation", "Password"):  # logs in and checks if login was successful
     session.move_to_region("Lily")  # only moves if you successfully logged in
+
+# an API client is also available, here's a simple example
+data = session.api_request("world", shard="nations")
+# it returns a benedict object (https://github.com/fabiocaccamo/python-benedict), which is a dict with some extra features
+# you can access the data like a normal dict
+nations = data["nations"].split(",")
+# or you can use a keyattribute (my personal favorite)
+nations = data.nations.split(",")
 ```
 
 ## TODO:

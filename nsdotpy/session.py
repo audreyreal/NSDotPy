@@ -25,6 +25,7 @@ import keyboard  # for the required user input
 import httpx  # for http stuff
 from tendo.singleton import SingleInstance  # so it can only be run once at a time
 from bs4 import BeautifulSoup, Tag  # for parsing html and xml
+from benedict import benedict
 
 # local imports
 from . import valid  # for valid region tags
@@ -66,7 +67,7 @@ class NSSession:
             link_to_src (str, optional): Link to the source code of your script.
             logger (logging.Logger | None, optional): Logger to use. Will create its own with name "NSDotPy" if none is specified. Defaults to None.
         """
-        self.VERSION = "1.3.4"
+        self.VERSION = "2.0.0"
         # Initialize logger
         if not logger:
             self._init_logger()
@@ -76,15 +77,15 @@ class NSSession:
         # only be run once at a time, avoiding simultaneity issues
         self._me = SingleInstance()
         # Create a new httpx session
-        self._session = httpx.Client(http2=True, timeout=30)  # ns can b slow
+        self._session = httpx.Client(
+            http2=True, timeout=30
+        )  # ns can b slow, 30 seconds is hopefully a good sweet spot
         # Set the user agent to the script name, version, author, and user as recommended in the script rules thread:
         # https://forum.nationstates.net/viewtopic.php?p=16394966&sid=be37623536dbc8cee42d8d043945b887#p16394966
         self._lock: bool = False
         self._set_user_agent(
             script_name, script_version, script_author, script_user, link_to_src
         )
-        # If a link to the source code is provided, add it to the user agent
-        self._ns_server = "1"
         # Initialize nationstates specific stuff
         self._auth_region = "rwby"
         self.chk: str = ""
@@ -92,15 +93,40 @@ class NSSession:
         self.pin: str = ""
         self.nation: str = ""
         self.region: str = ""
-        self.api_pin: str = ""
-        self.current_page: tuple[str, str] = ("", "")
         self.keybind = keybind
         # Make sure the nations in the user agent actually exist
-        if not self._validate_nations([script_author, script_user]):
+        if not self._validate_nations({script_author, script_user}):
             raise ValueError(
                 "One of, or both, of the nations in the user agent do not exist. Make sure you're only including the nation name in the constructor, e.g. 'Thorn1000' instead of 'Devved by Thorn1000'"
             )
         self.logger.info(f"Initialized. Keybind to continue is {self.keybind}.")
+
+    def _validate_shards(self, api: str, shards: set[str]) -> None:
+        """Makes sure a given payload to the nationstates API is valid.
+
+        Args:
+            API (str): The API to validate the payload for
+            Shard (set): The shards to validate the payload for
+        """
+        for shard in shards:
+            match api:
+                case "nation":
+                    if (
+                        shard
+                        not in valid.NATION_SHARDS
+                        | valid.PRIVATE_NATION_SHARDS
+                        | valid.PRIVATE_NATION_SHARDS
+                    ):
+                        raise ValueError(f"{shard} is not a valid shard for {api}")
+                case "region":
+                    if shard not in valid.REGION_SHARDS:
+                        raise ValueError(f"{shard} is not a valid shard for {api}")
+                case "world":
+                    if shard not in valid.WORLD_SHARDS:
+                        raise ValueError(f"{shard} is not a valid shard for {api}")
+                case "wa":
+                    if shard not in valid.WA_SHARDS:
+                        raise ValueError(f"{shard} is not a valid shard for {api}")
 
     def _set_user_agent(
         self,
@@ -118,23 +144,17 @@ class NSSession:
         self.user_agent = f"{self.user_agent}; Written with NSDotPy/{self.VERSION} (by:Sweeze; src:github.com/sw33ze/NSDotPy)"
         self._session.headers.update({"User-Agent": self.user_agent})
 
-    def _validate_nations(self, nations: list[str]) -> bool:
+    def _validate_nations(self, nations: set[str]) -> bool:
         """Checks if a list of nations exist using the NationStates API.
 
         Args:
-            nations (list[str]): List of nations to check
+            nations (set[str]): List of nations to check
 
         Returns:
-            bool: True if all nations in the list exist, False otherwise.
+            bool: True if all nations in the set exist, False otherwise.
         """
-        url = "https://www.nationstates.net/cgi-bin/api.cgi"
-        data = {"q": "nations"}
-        response = self.request(url, data)
-        soup = BeautifulSoup(response.text, "lxml-xml")
-        # the list of nations is inside the <NATIONS> tag
-        world_nations_tag: Tag = soup.find("NATIONS")  # type: ignore
-        # get the list of nations from the <NATIONS> tag
-        world_nations: list[str] = world_nations_tag.text.split(",")
+        response = self.api_request("world", shard="nations")
+        world_nations = response.nations.split(",")
         # check if all nations in the list exist in the world nations
         return all(canonicalize(nation) in world_nations for nation in nations)
 
@@ -175,19 +195,12 @@ class NSSession:
             self.localid = localid["value"].strip()  # type: ignore
         if pin := self._session.cookies.get("pin"):
             # you should never really need the pin but just in case i'll store it
+            # PAST ME WAS RIGHT, I NEEDED IT FOR THE PRIVATE API!!
             self.pin = pin
         if soup.find("a", {"class": "STANDOUT"}):
             self.region = canonicalize(
                 soup.find_all("a", {"class": "STANDOUT"})[1].attrs["href"].split("=")[1]
             )
-
-    def _refresh_auth_values(self):
-        self.logger.info("Refreshing authentication values...")
-        response = self.request(
-            f"https://www.nationstates.net/page=display_region/region={self._auth_region}",
-            data={"theme": "century"},
-        )
-        self._get_auth_values(response)
 
     def _wait_for_input(self, key: str) -> int:
         """Blocks execution until the user presses a key. Used as the one click = one request action.
@@ -209,7 +222,7 @@ class NSSession:
 
         Returns:
             str: The detagged WFE"""
-        self.logger.info(f"Getting detagged WFE for {self.region}...")
+        self.logger.info(f"Getting detag WFE for {self.region}...")
         response = self.request(
             f"https://greywardens.xyz/tools/wfe_index/region={self.region}",
         )
@@ -243,7 +256,7 @@ class NSSession:
                 )
 
     def _html_request(
-        self, url, data={}, files=None, follow_redirects=False, auth=()
+        self, url, data={}, files=None, follow_redirects=False
     ) -> httpx.Response:
         data |= {"chk": self.chk, "localid": self.localid}
         userclick = self._wait_for_input(self.keybind)
@@ -253,7 +266,6 @@ class NSSession:
             data=data,
             files=files,
             follow_redirects=follow_redirects,
-            auth=auth,
         )
         if response.status_code >= 400:
             with open("error.html", "w") as f:
@@ -266,24 +278,13 @@ class NSSession:
 
     # --- end private methods --- #
 
-    def NS2_authenticate(self, user: str, password: str):
-        """Authenticates the user to nationstates2.net with the given credentials.
-
-        Args:
-            user (str): The username supplied
-            password (str): The password supplied
-
-        Returns:
-            bool: True if the authentication was successful, False otherwise"""
-        url = "https://www.nationstates2.net/template-overall=none/"
-        self._auth_user = user
-        self._auth_password = password
-        response = self._html_request(url, auth=(user, password))
-        if response.status_code == 200:
-            self._ns_server = "2"
-            self._auth_region = "the_black_hawks"
-            return True
-        return False
+    def refresh_auth_values(self):
+        self.logger.info("Refreshing authentication values...")
+        response = self.request(
+            f"https://www.nationstates.net/page=display_region/region={self._auth_region}",
+            data={"theme": "century"},
+        )
+        self._get_auth_values(response)
 
     def request(
         self,
@@ -302,18 +303,15 @@ class NSSession:
         Returns:
             httpx.Response: The response from the server
         """
-        auth = None
-        if self._ns_server != "1":
-            url = url.replace("nationstates.net", f"nationstates{self._ns_server}.net")
-            auth = (self._auth_user, self._auth_password)
         if any(
             banned_page in canonicalize(url)
-            for banned_page in [
+            for banned_page in {
                 "page=telegrams",
                 "page=dilemmas",
                 "page=compose_telegram",
                 "page=store",
-            ]
+                "page=help",
+            }
         ):
             raise ValueError(
                 "You cannot use a tool to interact with telegrams, issues, getting help, or the store. Read up on the script rules: https://forum.nationstates.net/viewtopic.php?p=16394966#p16394966"
@@ -327,60 +325,86 @@ class NSSession:
             )
         self._lock = True
         if "api.cgi" in canonicalize(url):
-            # deal with ratelimiting if its an api request
-            response = self.api_request(data, _auth=auth)
+            # you should be using api_request for api requests
+            raise ValueError("You should be using api_request() for api requests.")
         elif "nationstates" in canonicalize(url):
             # do all the things that need to be done for html requests
-            response = self._html_request(url, data, files, follow_redirects, auth=auth)
+            response = self._html_request(url, data, files, follow_redirects)
         else:
             # if its not nationstates then just pass the request through
             response = self._session.post(
                 url, data=data, follow_redirects=follow_redirects
             )
-        self.current_page = (url, response.text)
         self._lock = False
         return response
 
-    def api_request(self, data: dict, password: str = "", _auth=()) -> httpx.Response:
+    def api_request(
+        self,
+        api: str,
+        *,
+        target: str = "",
+        shard: str | set[str] = "",
+        password: str = "",
+        constant_rate_limit: bool = False,
+    ) -> benedict:
         """Sends a request to the nationstates api with the given data.
 
         Args:
-            data (dict): Payload to send with the request, e.g. {"nation": "testlandia", "q": "region"}
-            password (str, optional): The password to use for authenticating private api requests. Defaults to "".
-            _auth (tuple, optional): The username and password to use for authentication to an alternative nationstates server. Defaults to ().
+            api (str): The api to send the request to. Must be "nation", "region", "world", or "wa"
+            target (str, optional): The nation, region, or wa council to target. Required for non-world api requests.
+            shard (str, optional): The shard, or shards, you're requesting for. Must be a valid shard for the given api. Only required for world and wa api requests.
+            password (str, optional): The password to use for authenticating private api requests. Defaults to "". Not required if already signed in, whether through the api or through the HTML site.
+            constant_rate_limit (bool, optional): If True, will always rate limit. If False, will only rate limit when there's less than 10 requests left in the current bucket. Defaults to False.
 
         Returns:
-            httpx.Response: The response from the server
+            benedict: A benedict object containing the response from the server. Acts like a dictionary, with keypath and keylist support.
         """
         # TODO: probably move this responsibility to a third party api library to avoid reinventing the wheel
         # if one exists of sufficient quality thats AGPLv3 compatible
-        data |= {"v": "12"}
-        url = (
-            f"https://www.nationstates{self._ns_server}.net/cgi-bin/api.cgi"
-            if _auth
-            else "https://www.nationstates.net/cgi-bin/api.cgi"
-        )
+        if api not in {"nation", "region", "world", "wa"}:
+            raise ValueError("api must be 'nation', 'region', 'world', or 'wa'")
+        if api != "world" and not target:
+            raise ValueError("target must be specified for non-world api requests")
+        if api in {"wa", "world"} and not shard:
+            raise ValueError("shard must be specified for world and wa api requests")
+        # end argument validation
+        # shard validation
+        if type(shard) == str:
+            shard = {shard}
+        self._validate_shards(api, shard)  # type: ignore
+        # end shard validation
+        data = {
+            "v": "12",
+        }
+        if api != "world":
+            data[api] = target
+        if shard:
+            data["q"] = "+".join(shard)
+        url = "https://www.nationstates.net/cgi-bin/api.cgi"
         if password:
             self._session.headers["X-Password"] = password
-        if self.api_pin:
-            self._session.headers["X-Pin"] = self.api_pin
+        if self.pin:
+            self._session.headers["X-Pin"] = self.pin
         # rate limiting section
-        response = self._session.post(url, data=data, auth=_auth)
+        response = self._session.post(url, data=data)
         # if the server tells us to wait, wait
         head = response.headers
         if "X-Pin" in head:
-            self.api_pin = head["X-Pin"]
+            self.pin = head["X-Pin"]
         if waiting_time := head.get("Retry-After"):
             self.logger.warning(f"Rate limited. Waiting {waiting_time} seconds.")
             time.sleep(int(waiting_time))
         # slow down requests so we dont hit the rate limit in the first place
         requests_left = int(head["RateLimit-Remaining"])
-        seconds_until_reset = int(head["RateLimit-Reset"])
-        # only slow down if we're close to the limit to avoid slowing down one off or infrequent requests
-        if requests_left < 10:
+        if requests_left < 10 or constant_rate_limit:
+            seconds_until_reset = int(head["RateLimit-Reset"])
             time.sleep(seconds_until_reset / requests_left)
         # end rate limiting section
-        return response
+        response.raise_for_status()
+        parsed_response = benedict.from_xml(response.text, keyattr_dynamic=True)
+        parsed_response.standardize()
+        parsed_response: benedict = parsed_response[api]  # type: ignore
+        return parsed_response
 
     def login(self, nation: str, password: str) -> bool:
         """Logs in to the nationstates site.
@@ -441,7 +465,7 @@ class NSSession:
         response = self.request(url, data=data, files=files)
 
         if "page=settings" in response.headers["location"]:
-            self._refresh_auth_values()
+            self.refresh_auth_values()
             return True
         elif "Just a moment..." in response.text:
             self.logger.warning(
@@ -564,7 +588,7 @@ class NSSession:
 
         if "?welcome=1" in response.headers["location"]:
             # since we're just getting thrown into a cgi script, we'll have to manually grab authentication values
-            self._refresh_auth_values()
+            self.refresh_auth_values()
             return True
         return False
 
@@ -643,11 +667,11 @@ class NSSession:
 
         return "Dossier cleared of nations." in response.text
 
-    def add_to_dossier(self, nations: list[str]) -> bool:
+    def add_to_dossier(self, nations: list[str] | str) -> bool:
         """Adds nations to the logged in nation's dossier.
 
         Args:
-            nations (list[str]): List of nations to add
+            nations (list[str] | str): List of nations to add, or a single nation
 
         Returns:
             bool: Whether it was successful or not
@@ -660,11 +684,15 @@ class NSSession:
             "action_append": "Upload Nation Dossier File",
         }
         files = {
-            "file": ("dossier.txt", "\n".join(nations), "text/plain"),
+            "file": (
+                "dossier.txt",
+                "\n".join(nations).strip() if type(nations) is list else nations,
+                "text/plain",
+            ),
         }
         response = self.request(url, data, files=files)
 
-        self._refresh_auth_values()
+        self.refresh_auth_values()
         return "appended=" in response.headers["location"]
 
     def wa_vote(self, council: str, vote: str) -> bool:
@@ -680,9 +708,9 @@ class NSSession:
         self.logger.info(
             f"Voting {vote} on {council.upper()} resolution with {self.nation}"
         )
-        if council not in ["ga", "sc"]:
+        if council not in {"ga", "sc"}:
             raise ValueError("council must be 'ga' or 'sc'")
-        if vote not in ["for", "against"]:
+        if vote not in {"for", "against"}:
             raise ValueError("vote must be 'for' or 'against'")
         self.logger.info("Voting on WA resolution")
 
@@ -737,8 +765,33 @@ class NSSession:
 
         if "?founded=new" not in response.headers["location"]:
             return False
-        self._refresh_auth_values()
+        self.nation = nation_name
+        self.refresh_auth_values()
         return True
+
+    def refound_nation(self, nation: str, password: str) -> bool:
+        """Refounds a nation.
+
+        Args:
+            nation (str): Name of the nation to refound
+            password (str): Password to the nation
+
+        Returns:
+            bool: Whether the nation was successfully refounded or not
+        """
+        url = "https://www.nationstates.net/template-overall=none/"
+        data = {
+            "logging_in": "1",
+            "restore_password": password,
+            "restore_nation": "1",
+            "nation": nation,
+        }
+        response = self.request(url, data=data)
+        if response.status_code == 302:
+            self.nation = nation
+            self.refresh_auth_values()
+            return True
+        return False
 
     # methods for region control
 
@@ -767,8 +820,8 @@ class NSSession:
         url = "https://www.nationstates.net/template-overall=none/page=create_region"
         data = {
             "page": "create_region",
-            "region_name": region_name,
-            "desc": wfe,
+            "region_name": region_name.strip(),
+            "desc": wfe.strip(),
             "create_region": "1",
         }
         if password:
@@ -794,7 +847,7 @@ class NSSession:
             str: Empty string if the upload failed, otherwise the ID of the uploaded file
         """
         self.logger.info(f"Uploading {filename} to {self.region}")
-        if type not in ["flag", "banner"]:
+        if type not in {"flag", "banner"}:
             raise ValueError("type must be 'flag' or 'banner'")
         url = "https://www.nationstates.net/cgi-bin/upload.cgi"
         data = {
@@ -829,7 +882,7 @@ class NSSession:
         Returns:
             bool: Whether the change was successful or not
         """
-        if flag_mode not in ["flag", "logo", ""]:
+        if flag_mode not in {"flag", "logo", ""}:
             raise ValueError("flagmode must be 'flag', 'logo', or ''")
         self.logger.info(f"Setting flag and banner for {self.region}")
         url = "https://www.nationstates.net/template-overall=none/page=region_control/"
@@ -948,9 +1001,9 @@ class NSSession:
         Returns:
             bool: Whether the tag was successfully added or removed
         """
-        if action not in ["add", "remove"]:
+        if action not in {"add", "remove"}:
             raise ValueError("action must be 'add' or 'remove'")
-        if canonicalize(tag) not in valid.region_tags:
+        if canonicalize(tag) not in valid.REGION_TAGS:
             raise ValueError(f"{tag} is not a valid tag")
         self.logger.info(f"{action.capitalize()}ing tag {tag} for {self.region}")
         url = "https://www.nationstates.net/template-overall=none/page=region_control/"
@@ -962,7 +1015,7 @@ class NSSession:
         return "Region Tags updated!" in response.text
 
     def eject(self, nation: str) -> bool:
-        """Ejects a nation from the current region.
+        """Ejects a nation from the current region. Note that a 1 second delay is required before ejecting another nation.
 
         Args:
             nation (str): The nation to eject.
@@ -977,7 +1030,7 @@ class NSSession:
         return "has been ejected from " in response.text
 
     def banject(self, nation: str) -> bool:
-        """Bans a nation from the current region.
+        """Bans a nation from the current region. Note that a 1 second delay is required before banjecting another nation.
 
         Args:
             nation (str): The nation to banject.

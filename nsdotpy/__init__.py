@@ -1,4 +1,4 @@
-# This file is part of NSDotPy, a wrapper around requests that makes interacting
+# This file is part of NSDotPy, a wrapper around httpx that makes interacting
 # with the HTML nationstates.net site legally and efficiently easier.
 #
 # NSDotPy is free software: you can redistribute it and/or modify

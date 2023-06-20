@@ -1,4 +1,4 @@
-# This file is part of NSDotPy, a wrapper around requests that makes interacting
+# This file is part of NSDotPy, a wrapper around httpx that makes interacting
 # with the HTML nationstates.net site legally and efficiently easier.
 #
 # NSDotPy is free software: you can redistribute it and/or modify
@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with NSDotPy. If not, see <https://www.gnu.org/licenses/>.
 
-region_tags: list[str] = [
+REGION_TAGS: set[str] = {
     "anarchist",
     "anime",
     "anti-capitalist",
@@ -96,9 +96,9 @@ region_tags: list[str] = [
     "trading_cards",
     "video_game",
     "world_assembly",
-]
+}
 
-nation_shards: list[str] = [
+NATION_SHARDS: set[str] = {
     "admirable",
     "admirables",
     "animal",
@@ -167,9 +167,9 @@ nation_shards: list[str] = [
     "wabadges",
     "wcensus",
     "zombie",
-]
+}
 
-private_nation_shards: list[str] = [
+PRIVATE_NATION_SHARDS: set[str] = {
     "dossier",
     "issues",
     "issuesummary",
@@ -180,9 +180,9 @@ private_nation_shards: list[str] = [
     "ping",
     "rdossier",
     "unread",
-]
+}
 
-region_shards: list[str] = [
+REGION_SHARDS: set[str] = {
     "banlist",
     "banner",
     "bannerby",
@@ -221,9 +221,9 @@ region_shards: list[str] = [
     "tags",
     "wabadges",
     "zombie",
-]
+}
 
-world_shards: list[str] = [
+WORLD_SHARDS: set[str] = {
     "banner",
     "census",
     "censusid",
@@ -247,9 +247,9 @@ world_shards: list[str] = [
     "regions",
     "regionsbytag",
     "tgqueue",
-]
+}
 
-wa_shards: list[str] = [
+WA_SHARDS: set[str] = {
     "numnations",
     "numdelegates",
     "delegates",
@@ -262,4 +262,10 @@ wa_shards: list[str] = [
     "dellog",
     "delvotes",
     "lastresolution",
-]
+}
+
+PRIVATE_COMMANDS: set[str] = {
+    "issue",
+    "giftcard",
+    "dispatch",
+}
