@@ -67,7 +67,7 @@ class NSSession:
             link_to_src (str, optional): Link to the source code of your script.
             logger (logging.Logger | None, optional): Logger to use. Will create its own with name "NSDotPy" if none is specified. Defaults to None.
         """
-        self.VERSION = "2.0.0"
+        self.VERSION = "2.1.0"
         # Initialize logger
         if not logger:
             self._init_logger()
@@ -255,6 +255,18 @@ class NSSession:
                     "Pretitle should only contain alphanumeric characters or spaces."
                 )
 
+    def _wait_for_ratelimit(self, head: dict, constant_rate_limit: bool):
+        if "X-Pin" in head:
+            self.pin = head["X-Pin"]
+        if waiting_time := head.get("Retry-After"):
+            self.logger.warning(f"Rate limited. Waiting {waiting_time} seconds.")
+            time.sleep(int(waiting_time))
+        # slow down requests so we dont hit the rate limit in the first place
+        requests_left = int(head["RateLimit-Remaining"])
+        if requests_left < 10 or constant_rate_limit:
+            seconds_until_reset = int(head["RateLimit-Reset"])
+            time.sleep(seconds_until_reset / requests_left)
+
     def _html_request(
         self, url, data={}, files=None, follow_redirects=False
     ) -> httpx.Response:
@@ -388,23 +400,212 @@ class NSSession:
         # rate limiting section
         response = self._session.post(url, data=data)
         # if the server tells us to wait, wait
-        head = response.headers
-        if "X-Pin" in head:
-            self.pin = head["X-Pin"]
-        if waiting_time := head.get("Retry-After"):
-            self.logger.warning(f"Rate limited. Waiting {waiting_time} seconds.")
-            time.sleep(int(waiting_time))
-        # slow down requests so we dont hit the rate limit in the first place
-        requests_left = int(head["RateLimit-Remaining"])
-        if requests_left < 10 or constant_rate_limit:
-            seconds_until_reset = int(head["RateLimit-Reset"])
-            time.sleep(seconds_until_reset / requests_left)
-        # end rate limiting section
+        self._wait_for_ratelimit(response.headers, constant_rate_limit)
         response.raise_for_status()
         parsed_response = benedict.from_xml(response.text, keyattr_dynamic=True)
         parsed_response.standardize()
         parsed_response: benedict = parsed_response[api]  # type: ignore
         return parsed_response
+
+    def api_issue(
+        self,
+        nation: str,
+        issue: int,
+        option: int,
+        password: str = "",
+        constant_rate_limit: bool = False,
+    ) -> benedict:
+        """Answers an issue via the API.
+
+        Args:
+            nation (str): The nation to perform the command with.
+            issue (int): the ID of the issue.
+            option (int): the issue option to choose.
+            password (str, optional): The password to use for authenticating private api requests. Defaults to "". Not required if already signed in, whether through the api or through the HTML site.
+            constant_rate_limit (bool, optional): If True, will always rate limit. If False, will only rate limit when there's less than 10 requests left in the current bucket. Defaults to False.
+
+        Returns:
+            benedict: A benedict object containing the response from the server. Acts like a dictionary, with keypath and keylist support.
+        """
+        if not (password or self.pin):
+            raise ValueError("must specify authentication")
+        data = {
+            "v": "12",
+            "c": "issue",
+            "nation": canonicalize(nation),
+            "issue": issue,
+            "option": option,
+        }
+        url = "https://www.nationstates.net/cgi-bin/api.cgi"
+        if password:
+            self._session.headers["X-Password"] = password
+        if self.pin:
+            self._session.headers["X-Pin"] = self.pin
+        # rate limiting section
+        response = self._session.get(url, params=data)
+        # if the server tells us to wait, wait
+        self._wait_for_ratelimit(response.headers, constant_rate_limit)
+        response.raise_for_status()
+        parsed_response = benedict.from_xml(response.text, keyattr_dynamic=True)
+        parsed_response.standardize()
+        parsed_response: benedict = parsed_response["nation"]  # type: ignore
+        return parsed_response
+
+    def api_command(
+        self,
+        nation: str,
+        command: str,
+        data: dict,
+        password: str = "",
+        mode: str = "",
+        constant_rate_limit: bool = False,
+    ) -> benedict:
+        """Sends a non-issue command to the nationstates api with the given data and password.
+
+        Args:
+            nation (str): The nation to perform the command with.
+            command (str): The command to perform. Must be "giftcard", "dispatch", "rmbpost"
+            data (str, optional): The unique data to send with the parameters of the command; consult the API docs for more information.
+            password (str, optional): The password to use for authenticating private api requests. Defaults to "". Not required if already signed in, whether through the api or through the HTML site.
+            mode (str, optional): Whether to prepare or to execute the command. If value is given, does one of the two and returns result, if no value is given, does both and returns result of execute.
+            constant_rate_limit (bool, optional): If True, will always rate limit. If False, will only rate limit when there's less than 10 requests left in the current bucket. Defaults to False.
+
+        Returns:
+            benedict: A benedict object containing the response from the server. Acts like a dictionary, with keypath and keylist support.
+        """
+        if command not in {"giftcard", "dispatch", "rmbpost"}:
+            raise ValueError("command must be 'giftcard', 'dispatch', or 'rmbpost'")
+        if not (password or self.pin):
+            raise ValueError("must specify authentication")
+        if mode not in {"", "prepare", "execute"}:
+            raise ValueError("mode must be prepare or execute")
+        data["v"] = "12"
+        data["nation"] = canonicalize(nation)
+        data["c"] = command
+        data["mode"] = mode if mode else "prepare"  # if no mode than first prepare
+        url = "https://www.nationstates.net/cgi-bin/api.cgi"
+        if password:
+            self._session.headers["X-Password"] = password
+        if self.pin:
+            self._session.headers["X-Pin"] = self.pin
+        # rate limiting section
+        response = self._session.get(url, params=data)
+        # if the server tells us to wait, wait
+        self._wait_for_ratelimit(response.headers, constant_rate_limit)
+        response.raise_for_status()
+        parsed_response = benedict.from_xml(response.text, keyattr_dynamic=True)
+        parsed_response.standardize()
+        parsed_response: benedict = parsed_response["nation"]  # type: ignore
+        if mode == "":
+            # if no mode was specified earlier, repeat command with execute and token
+            data["token"] = parsed_response["success"]
+            return self.api_command(nation, command, data, mode="execute")
+        else:
+            return parsed_response
+
+    def api_giftcard(
+        self,
+        nation: str,
+        card_id: int,
+        season: int,
+        recipient: str,
+        password: str = "",
+        constant_rate_limit: bool = False,
+    ) -> benedict:
+        """Gifts a card using the API.
+
+        Args:
+            nation (str): The nation to perform the command with.
+            card_id (int): The ID of the card to gift.
+            season (int): The season of the card to gift.
+            recipient (str): The nation to gift the card to.
+            password (str, optional): The password to use for authenticating private api requests. Defaults to "". Not required if already signed in, whether through the api or through the HTML site.
+            constant_rate_limit (bool, optional): If True, will always rate limit. If False, will only rate limit when there's less than 10 requests left in the current bucket. Defaults to False.
+
+        Returns:
+            benedict: A benedict object containing the response from the server. Acts like a dictionary, with keypath and keylist support.
+        """
+        data = {"cardid": card_id, "season": season, "to": canonicalize(recipient)}
+        return self.api_command(
+            nation, "giftcard", data, password, constant_rate_limit=constant_rate_limit
+        )
+
+    def api_dispatch(
+        self,
+        nation: str,
+        action: str,
+        title: str = "",
+        text: str = "",
+        category: int = 0,
+        subcategory: int = 0,
+        dispatchid: int = 0,
+        password: str = "",
+        constant_rate_limit: bool = False,
+    ) -> benedict:
+        """Add, edit, or remove a dispatch.
+
+        Args:
+            nation (str): The nation to perform the command with.
+            action (str): The action to take. Must be "add", "edit", "remove"
+            title (str, optional): The dispatch title when adding or editing.
+            text (str, optional): The dispatch text when adding or editing.
+            category: (int, optional), The category ID when adding or editing.
+            subcategory (int, optional): The subcategory ID when adding or editing.
+            dispatchid (int, optional): The dispatch ID when editing or removing.
+            password (str, optional): The password to use for authenticating private api requests. Defaults to "". Not required if already signed in, whether through the api or through the HTML site.
+            constant_rate_limit (bool, optional): If True, will always rate limit. If False, will only rate limit when there's less than 10 requests left in the current bucket. Defaults to False.
+
+        Returns:
+            benedict: A benedict object containing the response from the server. Acts like a dictionary, with keypath and keylist support.
+        """
+        # TODO: maybe consider splitting these three functions?
+        # TODO: maybe create enums for category and subcategory
+        if action not in {"add", "edit", "remove"}:
+            raise ValueError("action must be 'add', 'edit', or 'remove'")
+        if action != "remove" and not all({title, text, category, subcategory}):
+            raise ValueError("must specify title, text, category, and subcategory")
+        if action != "add" and not dispatchid:
+            raise ValueError("must specify a dispatch id")
+
+        data = {"dispatch": action}
+        if title:
+            data["title"] = title
+        if text:
+            data["text"] = text
+        if category:
+            data["category"] = category
+        if subcategory:
+            data["subcategory"] = subcategory
+        if dispatchid:
+            data["dispatchid"] = dispatchid
+        return self.api_command(
+            nation, "dispatch", data, password, constant_rate_limit=constant_rate_limit
+        )
+
+    def api_rmb(
+        self,
+        nation: str,
+        region: str,
+        text: str,
+        password: str = "",
+        constant_rate_limit: bool = False,
+    ) -> benedict:
+        """Post a message on the regional message board via the API.
+
+        Args:
+            nation (str): The nation to perform the command with.
+            region (str): the region to post the message in.
+            text (str): the text to post.
+            password (str, optional): The password to use for authenticating private api requests. Defaults to "". Not required if already signed in, whether through the api or through the HTML site.
+            constant_rate_limit (bool, optional): If True, will always rate limit. If False, will only rate limit when there's less than 10 requests left in the current bucket. Defaults to False.
+
+        Returns:
+            benedict: A benedict object containing the response from the server. Acts like a dictionary, with keypath and keylist support.
+        """
+        data = {"region": region, "text": text}
+        return self.api_command(
+            nation, "rmbpost", data, password, constant_rate_limit=constant_rate_limit
+        )
 
     def login(self, nation: str, password: str) -> bool:
         """Logs in to the nationstates site.
