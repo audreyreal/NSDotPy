@@ -407,7 +407,14 @@ class NSSession:
         parsed_response: benedict = parsed_response[api]  # type: ignore
         return parsed_response
 
-    def api_issue(self, nation: str, issue: int, option: int, password: str = "", constant_rate_limit: bool = False) -> benedict:
+    def api_issue(
+        self,
+        nation: str,
+        issue: int,
+        option: int,
+        password: str = "",
+        constant_rate_limit: bool = False,
+    ) -> benedict:
         """Answers an issue via the API.
 
         Args:
@@ -427,7 +434,7 @@ class NSSession:
             "c": "issue",
             "nation": canonicalize(nation),
             "issue": issue,
-            "option": option
+            "option": option,
         }
         url = "https://www.nationstates.net/cgi-bin/api.cgi"
         if password:
@@ -441,10 +448,18 @@ class NSSession:
         response.raise_for_status()
         parsed_response = benedict.from_xml(response.text, keyattr_dynamic=True)
         parsed_response.standardize()
-        parsed_response: benedict = parsed_response['nation']  # type: ignore
+        parsed_response: benedict = parsed_response["nation"]  # type: ignore
         return parsed_response
 
-    def api_command(self, nation: str, command: str, data: dict, password: str = "", mode: str = "", constant_rate_limit: bool = False) -> benedict:
+    def api_command(
+        self,
+        nation: str,
+        command: str,
+        data: dict,
+        password: str = "",
+        mode: str = "",
+        constant_rate_limit: bool = False,
+    ) -> benedict:
         """Sends a non-issue command to the nationstates api with the given data and password.
 
         Args:
@@ -480,7 +495,7 @@ class NSSession:
         response.raise_for_status()
         parsed_response = benedict.from_xml(response.text, keyattr_dynamic=True)
         parsed_response.standardize()
-        parsed_response: benedict = parsed_response['nation']  # type: ignore
+        parsed_response: benedict = parsed_response["nation"]  # type: ignore
         if mode == "":
             # if no mode was specified earlier, repeat command with execute and token
             data["token"] = parsed_response["success"]
@@ -488,9 +503,17 @@ class NSSession:
         else:
             return parsed_response
 
-    def api_giftcard(self, nation: str, card_id: int, season: int, recipient: str, password: str = "", constant_rate_limit: bool = False) -> benedict:
+    def api_giftcard(
+        self,
+        nation: str,
+        card_id: int,
+        season: int,
+        recipient: str,
+        password: str = "",
+        constant_rate_limit: bool = False,
+    ) -> benedict:
         """Gifts a card using the API.
-        
+
         Args:
             nation (str): The nation to perform the command with.
             card_id (int): The ID of the card to gift.
@@ -502,14 +525,23 @@ class NSSession:
         Returns:
             benedict: A benedict object containing the response from the server. Acts like a dictionary, with keypath and keylist support.
         """
-        data = {
-            "cardid": card_id,
-            "season": season,
-            "to": canonicalize(recipient)
-        }
-        return self.api_command(nation, "giftcard", data, password, constant_rate_limit=constant_rate_limit)
+        data = {"cardid": card_id, "season": season, "to": canonicalize(recipient)}
+        return self.api_command(
+            nation, "giftcard", data, password, constant_rate_limit=constant_rate_limit
+        )
 
-    def api_dispatch(self, nation: str, action: str, title: str = "", text: str = "", category: int = 0, subcategory: int = 0, dispatchid: int = 0, password: str = "", constant_rate_limit: bool = False) -> benedict:
+    def api_dispatch(
+        self,
+        nation: str,
+        action: str,
+        title: str = "",
+        text: str = "",
+        category: int = 0,
+        subcategory: int = 0,
+        dispatchid: int = 0,
+        password: str = "",
+        constant_rate_limit: bool = False,
+    ) -> benedict:
         """Add, edit, or remove a dispatch.
 
         Args:
@@ -535,9 +567,7 @@ class NSSession:
         if action != "add" and not dispatchid:
             raise ValueError("must specify a dispatch id")
 
-        data = {
-            "dispatch": action
-        }
+        data = {"dispatch": action}
         if title:
             data["title"] = title
         if text:
@@ -548,9 +578,18 @@ class NSSession:
             data["subcategory"] = subcategory
         if dispatchid:
             data["dispatchid"] = dispatchid
-        return self.api_command(nation, "dispatch", data, password, constant_rate_limit=constant_rate_limit)
+        return self.api_command(
+            nation, "dispatch", data, password, constant_rate_limit=constant_rate_limit
+        )
 
-    def api_rmb(self, nation: str, region: str, text: str, password: str = "", constant_rate_limit: bool = False) -> benedict:
+    def api_rmb(
+        self,
+        nation: str,
+        region: str,
+        text: str,
+        password: str = "",
+        constant_rate_limit: bool = False,
+    ) -> benedict:
         """Post a message on the regional message board via the API.
 
         Args:
@@ -563,11 +602,10 @@ class NSSession:
         Returns:
             benedict: A benedict object containing the response from the server. Acts like a dictionary, with keypath and keylist support.
         """
-        data = {
-            "region": region,
-            "text": text
-        }
-        return self.api_command(nation, "rmbpost", data, password, constant_rate_limit=constant_rate_limit)
+        data = {"region": region, "text": text}
+        return self.api_command(
+            nation, "rmbpost", data, password, constant_rate_limit=constant_rate_limit
+        )
 
     def login(self, nation: str, password: str) -> bool:
         """Logs in to the nationstates site.
