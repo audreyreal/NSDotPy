@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nsdotpy"
-version = "2.0.0"
+version = "2.1.0"
 description = "A wrapper around httpx that abstracts away interacting with the HTML nationstates.net site. Focused on legality, correctness, and ease of use."
 authors = ["audrey <audreyreal@proton.me>"]
 license = "AGPL-3.0-or-later"
