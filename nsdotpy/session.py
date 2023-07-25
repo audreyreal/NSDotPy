@@ -67,7 +67,7 @@ class NSSession:
             link_to_src (str, optional): Link to the source code of your script.
             logger (logging.Logger | None, optional): Logger to use. Will create its own with name "NSDotPy" if none is specified. Defaults to None.
         """
-        self.VERSION = "2.0.0"
+        self.VERSION = "2.1.0"
         # Initialize logger
         if not logger:
             self._init_logger()
