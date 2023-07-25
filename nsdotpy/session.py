@@ -467,7 +467,7 @@ class NSSession:
         data["v"] = "12"
         data["nation"] = canonicalize(nation)
         data["c"] = command
-        data["mode"] = mode if mode else "prepare"
+        data["mode"] = mode if mode else "prepare"  # if no mode than first prepare
         url = "https://www.nationstates.net/cgi-bin/api.cgi"
         if password:
             self._session.headers["X-Password"] = password
@@ -482,7 +482,7 @@ class NSSession:
         parsed_response.standardize()
         parsed_response: benedict = parsed_response['nation']  # type: ignore
         if mode == "":
-            print(parsed_response)
+            # if no mode was specified earlier, repeat command with execute and token
             data["token"] = parsed_response["success"]
             return self.api_command(nation, command, data, mode="execute")
         else:
