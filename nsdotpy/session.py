@@ -67,7 +67,7 @@ class NSSession:
             link_to_src (str, optional): Link to the source code of your script.
             logger (logging.Logger | None, optional): Logger to use. Will create its own with name "NSDotPy" if none is specified. Defaults to None.
         """
-        self.VERSION = "2.1.0"
+        self.VERSION = "2.2.0"
         # Initialize logger
         if not logger:
             self._init_logger()
@@ -922,53 +922,6 @@ class NSSession:
         response = self.request(url, data)
 
         return "Your vote has been lodged." in response.text
-
-    def create_nation(
-        self,
-        nation_name: str,
-        password: str,
-        email: str,
-        currency: str,
-        animal: str,
-        motto: str,
-    ) -> bool:
-        """Creates a new nation.
-
-        Args:
-            nation_name (str): Name of the nation to create
-            password (str): Password to the nation
-            email (str): Email to use for WA apps on the nation
-            currency (str): Currency of the nation
-            animal (str): National animal of the nation
-            motto (str): National motto/slogan of the nation
-
-        Returns:
-            bool: Whether the nation was successfully created or not
-        """
-        self.logger.info("Founding new nation")
-        url = "https://www.nationstates.net/cgi-bin/build_nation.cgi"
-        data = {
-            "name": nation_name,
-            "type": "100",
-            "flag": "Default.svg",
-            "currency": currency,
-            "animal": animal,
-            "slogan": motto,
-            "email": email,
-            "password": password,
-            "confirm_password": password,
-            "legal": "1",
-            "style": "100.100.100",
-        }
-        self._validate_fields(data)
-
-        response = self.request(url, data)
-
-        if "?founded=new" not in response.headers["location"]:
-            return False
-        self.nation = nation_name
-        self.refresh_auth_values()
-        return True
 
     def refound_nation(self, nation: str, password: str) -> bool:
         """Refounds a nation.
