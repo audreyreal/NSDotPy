@@ -23,7 +23,6 @@ import mimetypes  # for flag and banner uploading
 # external library imports
 import keyboard  # for the required user input
 import httpx  # for http stuff
-from tendo.singleton import SingleInstance  # so it can only be run once at a time
 from bs4 import BeautifulSoup, Tag  # for parsing html and xml
 from benedict import benedict
 
@@ -67,15 +66,12 @@ class NSSession:
             link_to_src (str, optional): Link to the source code of your script.
             logger (logging.Logger | None, optional): Logger to use. Will create its own with name "NSDotPy" if none is specified. Defaults to None.
         """
-        self.VERSION = "2.2.0"
+        self.VERSION = "2.2.1"
         # Initialize logger
         if not logger:
             self._init_logger()
         else:
             self.logger = logger
-        # Attach the tendo singleton to the session object so it can
-        # only be run once at a time, avoiding simultaneity issues
-        self._me = SingleInstance()
         # Create a new httpx session
         self._session = httpx.Client(
             http2=True, timeout=30
@@ -328,26 +324,26 @@ class NSSession:
             raise ValueError(
                 "You cannot use a tool to interact with telegrams, issues, getting help, or the store. Read up on the script rules: https://forum.nationstates.net/viewtopic.php?p=16394966#p16394966"
             )
-        if self._lock:
-            # if lock is true then we're already in the middle of a
-            # request and we're in danger of breaking the simultaneity rule
-            # so raise an error
-            raise PermissionError(
-                "You're already in the middle of a request. Stop trying to violate simultaneity."
-            )
-        self._lock = True
         if "api.cgi" in canonicalize(url):
             # you should be using api_request for api requests
             raise ValueError("You should be using api_request() for api requests.")
         elif "nationstates" in canonicalize(url):
             # do all the things that need to be done for html requests
+            if self._lock:
+                # if lock is true then we're already in the middle of a
+                # request and we're in danger of breaking the simultaneity rule
+                # so raise an error
+                raise PermissionError(
+                    "You're already in the middle of a request. Stop trying to violate simultaneity."
+                )
+            self._lock = True
             response = self._html_request(url, data, files, follow_redirects)
+            self._lock = False
         else:
             # if its not nationstates then just pass the request through
             response = self._session.post(
                 url, data=data, follow_redirects=follow_redirects
             )
-        self._lock = False
         return response
 
     def api_request(
