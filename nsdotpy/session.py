@@ -41,6 +41,17 @@ def canonicalize(string: str) -> str:
     """
     return string.lower().strip().replace(" ", "_")
 
+def uncanonicalize(string: str) -> str:
+    """Converts a string into a user friendly form from it's canonical nationstates api form.
+    
+    Args:
+        string (str): The string to convert
+
+    Returns:
+        str: The uncanonicale form of the string
+    """
+    return string.replace("_", " ").title()
+
 
 class NSSession:
     def __init__(
