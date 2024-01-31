@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nsdotpy"
-version = "2.2.0"
+version = "2.2.1"
 description = "A wrapper around httpx that abstracts away interacting with the HTML nationstates.net site. Focused on legality, correctness, and ease of use."
 authors = ["audrey <audreyreal@proton.me>"]
 license = "AGPL-3.0-or-later"
@@ -8,17 +8,17 @@ readme = "README.md"
 repository = "https://github.com/sw33ze/NSDotPy"
 
 [tool.poetry.dependencies]
-python = ">=3.10,<3.12"
+python = ">=3.10"
 httpx = { extras = ["http2"], version = "^0.24.0" }
-beautifulsoup4 = "^4.12.2"
+beautifulsoup4 = "^4.12.3"
 keyboard = "^0.13.5"
-lxml = "^4.9.2"
+lxml = "^4.9.4"
 python-benedict = {extras = ["parse", "xml"], version = "^0.31.0"}
 
 [tool.poetry.group.dev.dependencies]
-black = "^23.3.0"
+black = "^23.12.1"
 pdoc = "^13.1.1"
-pyinstaller = "^5.10.1"
+pyinstaller = "^6.0.0"
 
 [build-system]
 requires = ["poetry-core"]
