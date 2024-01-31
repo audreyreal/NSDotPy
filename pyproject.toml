@@ -8,7 +8,7 @@ readme = "README.md"
 repository = "https://github.com/sw33ze/NSDotPy"
 
 [tool.poetry.dependencies]
-python = ">=3.10"
+python = ">=3.10,<3.13"
 httpx = { extras = ["http2"], version = "^0.24.0" }
 beautifulsoup4 = "^4.12.3"
 keyboard = "^0.13.5"
