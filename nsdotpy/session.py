@@ -117,10 +117,12 @@ class NSSession:
     def _validate_shards(self, api: str, shards: set[str]) -> None:
         """Validates shards for a given API."""
         api_to_shard_set = {
-            "nation": valid.NATION_SHARDS | valid.PRIVATE_NATION_SHARDS | valid.PRIVATE_NATION_SHARDS,
+            "nation": valid.NATION_SHARDS
+            | valid.PRIVATE_NATION_SHARDS
+            | valid.PRIVATE_NATION_SHARDS,
             "region": valid.REGION_SHARDS,
             "world": valid.WORLD_SHARDS,
-            "wa": valid.WA_SHARDS
+            "wa": valid.WA_SHARDS,
         }
 
         valid_shards = api_to_shard_set.get(api)
@@ -1441,12 +1443,14 @@ class NSSession:
         """
         self.logger.info(f"Joining faction {id}")
 
-        url = f"https://www.nationstates.net/template-overall=none/page=faction/fid={id}"
+        url = (
+            f"https://www.nationstates.net/template-overall=none/page=faction/fid={id}"
+        )
         data = {"join_faction": "1"}
         response = self.request(url, data)
 
         return " has joined " in response.text
-    
+
     def leave_nday_faction(self, id: str):
         """Leaves a faction in the N-Day event
 
@@ -1458,7 +1462,9 @@ class NSSession:
         """
         self.logger.info(f"Leaving faction {id}")
 
-        url = f"https://www.nationstates.net/template-overall=none/page=faction/fid={id}"
+        url = (
+            f"https://www.nationstates.net/template-overall=none/page=faction/fid={id}"
+        )
         data = {"leave_faction": "1"}
         response = self.request(url, data)
 
