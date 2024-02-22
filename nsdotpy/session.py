@@ -66,7 +66,7 @@ class NSSession:
             link_to_src (str, optional): Link to the source code of your script.
             logger (logging.Logger | None, optional): Logger to use. Will create its own with name "NSDotPy" if none is specified. Defaults to None.
         """
-        self.VERSION = "2.2.1"
+        self.VERSION = "2.3.0"
         # Initialize logger
         if not logger:
             self._init_logger()
@@ -97,32 +97,26 @@ class NSSession:
             )
         self.logger.info(f"Initialized. Keybind to continue is {self.keybind}.")
 
-    def _validate_shards(self, api: str, shards: set[str]) -> None:
-        """Makes sure a given payload to the nationstates API is valid.
+    def _validate_shard(self, shard, valid_shards, api):
+        """Helper function to validate a single shard."""
+        if shard not in valid_shards:
+            raise ValueError(f"{shard} is not a valid shard for {api}")
 
-        Args:
-            API (str): The API to validate the payload for
-            Shard (set): The shards to validate the payload for
-        """
+    def _validate_shards(self, api: str, shards: set[str]) -> None:
+        """Validates shards for a given API."""
+        api_to_shard_set = {
+            "nation": valid.NATION_SHARDS | valid.PRIVATE_NATION_SHARDS | valid.PRIVATE_NATION_SHARDS,
+            "region": valid.REGION_SHARDS,
+            "world": valid.WORLD_SHARDS,
+            "wa": valid.WA_SHARDS
+        }
+
+        valid_shards = api_to_shard_set.get(api)
+        if not valid_shards:
+            raise ValueError(f"Invalid API type: {api}")
+
         for shard in shards:
-            match api:
-                case "nation":
-                    if (
-                        shard
-                        not in valid.NATION_SHARDS
-                        | valid.PRIVATE_NATION_SHARDS
-                        | valid.PRIVATE_NATION_SHARDS
-                    ):
-                        raise ValueError(f"{shard} is not a valid shard for {api}")
-                case "region":
-                    if shard not in valid.REGION_SHARDS:
-                        raise ValueError(f"{shard} is not a valid shard for {api}")
-                case "world":
-                    if shard not in valid.WORLD_SHARDS:
-                        raise ValueError(f"{shard} is not a valid shard for {api}")
-                case "wa":
-                    if shard not in valid.WA_SHARDS:
-                        raise ValueError(f"{shard} is not a valid shard for {api}")
+            self._validate_shard(shard, valid_shards, api)
 
     def _set_user_agent(
         self,
@@ -1423,6 +1417,40 @@ class NSSession:
         return (
             "Available! This name may be used to found a new nation." in response.text
         )
+
+    def join_nday_faction(self, id: str):
+        """Joins a faction in the N-Day event
+
+        Args:
+            id (str): The ID of the faction you want to join
+
+        Returns:
+            bool: Whether the joining was successful or not
+        """
+        self.logger.info(f"Joining faction {id}")
+
+        url = f"https://www.nationstates.net/template-overall=none/page=faction/fid={id}"
+        data = {"join_faction": "1"}
+        response = self.request(url, data)
+
+        return " has joined " in response.text
+    
+    def leave_nday_faction(self, id: str):
+        """Leaves a faction in the N-Day event
+
+        Args:
+            id (str): The ID of the faction you want to leave
+
+        Returns:
+            bool: Whether the leaving was successful or not
+        """
+        self.logger.info(f"Leaving faction {id}")
+
+        url = f"https://www.nationstates.net/template-overall=none/page=faction/fid={id}"
+        data = {"leave_faction": "1"}
+        response = self.request(url, data)
+
+        return " has left " in response.text
 
 
 if __name__ == "__main__":
