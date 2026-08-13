@@ -1,3 +1,5 @@
+
+
 # NSDotPy
 
 A Python wrapper around httpx for legally interacting with the HTML NationStates site, as well as a barebones API client. Built for legality first and foremost, as well as ease of use.
@@ -48,7 +50,7 @@ https://audreyreal.github.io/NSDotPy/nsdotpy/session.html#NSSession
 1. [Ensure poetry is installed](https://python-poetry.org/docs/#installation), or your system's package manager if applicable.
 2. Run `poetry install` in the root directory of the project to install dependencies if you haven't already.
 3. Run `poetry build` to build the package. Ensure the version number in `pyproject.toml` is correct against the version number in `session.py`.
-4. Run `poetry publish` to publish the package to PyPi. You will need to have a PyPi account have supplied your API key to poetry.
+4. Run `poetry publish` to publish the package to PyPi. You will need to have a PyPI account and supply your API key to poetry.
 
 ## Contributing
 
