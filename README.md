@@ -1,3 +1,5 @@
+# Deprecation Notice
+On Feb 10, 2025, NationStates implemented anti-bot measures that broke this, amongst all other legal headless tools that interacted with the HTML NationStates site. See https://github.com/audreyreal/bouquet for my newest answer to this problem.
 # NSDotPy
 
 A Python wrapper around httpx for legally interacting with the HTML NationStates site, as well as a barebones API client. Built for legality first and foremost, as well as ease of use.
